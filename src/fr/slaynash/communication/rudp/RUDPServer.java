@@ -22,10 +22,11 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 	
 	private int port;
 	private Thread serverThread = null;
+	private Thread clientDropHandlerThread = null;
 	private DatagramSocket serverDS = null;
 	
-	List<RUDPClient> clients = Collections.synchronizedList(new ArrayList<RUDPClient>());
-	protected boolean running = false;
+	private List<RUDPClient> clients = Collections.synchronizedList(new ArrayList<RUDPClient>());
+	private boolean running = false;
 	private Class<? extends ClientManager> clientManager = null;
 	
 	public RUDPServer(int port) throws SocketException{
@@ -63,11 +64,34 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 				}
 			}
 		}, "Packets receiver");
+		
+		clientDropHandlerThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while(running){
+					synchronized(clients){
+						long maxNS = System.nanoTime()-Values.CLIENT_TIMEOUT_TIME_NANOSECONDS;
+						int i=0;
+						while(i<clients.size()){
+							RUDPClient client = clients.get(i);
+							if(client.lastPacketReceiveTime < maxNS){
+								client.disconnected("Connection timed out");
+								clients.remove(i);
+							}
+							else i++;
+						}
+					}
+					try {Thread.sleep(3000);} catch (InterruptedException e) {e.printStackTrace();}
+				}
+			}
+		}, "client drop handler");
 	}
 	
 	public void start(){
+		if(running) return;
 		running = true;
 		serverThread.start();
+		clientDropHandlerThread.start();
 		System.out.println("server started on UDP port "+port);
 	}
 	
@@ -113,20 +137,11 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 		}
 	}
 	
-	public void timeoutHandler(){
-		long time = System.nanoTime();
-		synchronized(clients){
-			for(RUDPClient client:clients) if(client.lastPacketReceiveTime < time-Values.PACKET_TIMEOUT_TIME_NANOSECONDS){
-				client.disconnected("Client timed out");
-			}
-		}
-	}
-	
 	public int getPort(){
 		return port;
 	}
 	
-	protected void sendPacket(byte[] data, InetAddress address, int port){
+	void sendPacket(byte[] data, InetAddress address, int port){
 		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
         packet.setData(data);
         try {
@@ -164,7 +179,7 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 		serverDS.close();
 	}
 	
-	public void remove(RUDPClient client) {
+	void remove(RUDPClient client) {
 		synchronized(clients){
 			clients.remove(client);
 		}

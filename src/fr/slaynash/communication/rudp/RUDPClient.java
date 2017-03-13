@@ -22,7 +22,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	
 	InetAddress address;
 	int port;
-	public long lastPacketReceiveTime;
+	long lastPacketReceiveTime;
 	public int state = Values.connectionStates.STATE_DISCONNECTED;
 	private DatagramSocket socket = null;
 	private ClientManager clientManager = null;
@@ -31,10 +31,10 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	private Thread receiveThread = null;
 	private Thread pingThread = null;
 	
-	List<Long> packetsReceived = Collections.synchronizedList(new ArrayList<Long>());
-	List<ReliablePacket> packetsSent = Collections.synchronizedList(new ArrayList<ReliablePacket>());
+	private List<Long> packetsReceived = Collections.synchronizedList(new ArrayList<Long>());
+	private List<ReliablePacket> packetsSent = Collections.synchronizedList(new ArrayList<ReliablePacket>());
 	private int latency = 400;
-	protected RUDPClient instance = this;
+	private RUDPClient instance = this;
 
 	public RUDPClient(InetAddress address, int port) throws SocketException{
 		this.address = address;
@@ -46,7 +46,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		lastPacketReceiveTime = System.nanoTime();
 	}
 	
-	public RUDPClient(InetAddress clientAddress, int clientPort, RUDPServer rudpServer, Class<? extends ClientManager> clientManager) {
+	RUDPClient(InetAddress clientAddress, int clientPort, RUDPServer rudpServer, Class<? extends ClientManager> clientManager) {
 		this.address = clientAddress;
 		this.port = clientPort;
 		this.server = rudpServer;
@@ -110,6 +110,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 							} catch (SocketTimeoutException e) {
 								state = Values.connectionStates.STATE_DISCONNECTED;
 								disconnected("Connection timed out");
+								return;
 							} catch (IOException e) {
 								System.err.println("An error as occured while receiving a packet: ");
 								e.printStackTrace();
@@ -225,11 +226,11 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		}
 	}
 
-	public void handlePacket(byte[] data) {
-		lastPacketReceiveTime = System.nanoTime();
+	void handlePacket(byte[] data) {
+		lastPacketReceiveTime = System.nanoTime();//TODO verify if it's enough efficient (System.nanoTime() is reputed for being slow)
 		if(data[0] == (byte)0 && data[1] == Values.commands.PING_REQUEST){
 			byte[] l = new byte[]{Values.commands.PING_RESPONSE, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
-			sendPacket(l);//sending time received (long) // ping packet format: [IN:] Reliable CMD_PING sendTimeNano
+			sendPacket(l);//sending time received (long) // ping packet format: [IN:] Reliable CMD_PING_REPONSE sendTimeNano
 			return;
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.PING_RESPONSE){
@@ -285,9 +286,9 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		else if(clientManager != null) clientManager.handlePacket(data);
 	}
 	
-	public void disconnected(String reason) {
+	void disconnected(String reason) {
 		state = Values.connectionStates.STATE_DISCONNECTED;
-		clientManager.onDisconnected(reason);
+		if(clientManager != null) clientManager.onDisconnected(reason);
 	}
 	
 	public void disconnect(String reason) {
@@ -315,7 +316,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		this.clientManager = packetHandler;
 	}
 
-	public void initialize() {
+	void initialize() {
 		reliableThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -340,7 +341,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 					try {Thread.sleep(latency*2);} catch (InterruptedException e) {e.printStackTrace();}
 				}
 				state = Values.connectionStates.STATE_DISCONNECTED;
-				server.remove(instance );
+				server.remove(instance);
 			}
 		});
 		reliableThread.start();
