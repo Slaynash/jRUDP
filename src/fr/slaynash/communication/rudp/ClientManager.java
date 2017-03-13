@@ -8,8 +8,10 @@ public abstract class ClientManager {
 	}
 	
 	public abstract void initializeClient();
-	public abstract void disconnected(String reason);
-	public abstract void disconnect(String reason);
+	public abstract void onDisconnected(String reason);
+	public void disconnect(String reason){
+		rudp.disconnect(reason);
+	}
 	public abstract void handlePacket(byte[] data);
 	public abstract void handleReliablePacket(byte[] data, long sendNS);
 }

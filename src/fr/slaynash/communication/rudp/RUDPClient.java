@@ -73,7 +73,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		state = Values.connectionStates.STATE_CONNECTING;
 	}
 
-	public void connect(){
+	public void connect() throws SocketTimeoutException, SocketException, UnknownHostException, IOException{
 		System.out.println("Connecting to UDP port "+port+"...");
 		if(state == Values.connectionStates.STATE_CONNECTED){System.out.println("Client already connected !");return;}
 		if(state == Values.connectionStates.STATE_CONNECTING){System.out.println("Client already connecting !");return;}
@@ -94,7 +94,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 				state = Values.connectionStates.STATE_DISCONNECTED;
 				byte[] dataText = new byte[data.length-1];
 				System.arraycopy(data, 0, dataText, 0, dataText.length);
-				System.err.println("Unable to connect: "+new String(dataText, "UTF-8"));
+				System.err.println("Unable to connect: "+new String(dataText, "UTF-8"));//TODO throw Exception
 			}
 			else{
 				state = Values.connectionStates.STATE_CONNECTED;
@@ -169,13 +169,17 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			}
 		} catch (SocketTimeoutException e) {
 			state = Values.connectionStates.STATE_DISCONNECTED;
-			System.err.println("Unable to connect: Connection failed");
+			//System.err.println("Unable to connect: Connection failed");//TODO throw Exception
+			throw e;
 		} catch (SocketException e) {
-			e.printStackTrace();
+			state = Values.connectionStates.STATE_DISCONNECTED;
+			throw e;
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			state = Values.connectionStates.STATE_DISCONNECTED;
+			throw e;
 		} catch (IOException e) {
-			e.printStackTrace();
+			state = Values.connectionStates.STATE_DISCONNECTED;
+			throw e;
 		}
 	}
 	
@@ -230,16 +234,16 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.PING_RESPONSE){
 			byte[] l = new byte[]{data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
-			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			ByteBuffer buffer = ByteBuffer.allocate(8);
 			buffer.put(l, 0, l.length);
 	        buffer.flip();
 	        latency = (int) ((System.nanoTime() - buffer.getLong())/1e6);
 			return;
 		}
 		else if(data[0] == (byte)1){
-			byte[] l = new byte[]{data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
+			byte[] l = new byte[]{Values.commands.RELY, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
 			sendPacket(l);
-			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			ByteBuffer buffer = ByteBuffer.allocate(8);
 			buffer.put(l, 0, l.length);
 			buffer.flip();//need flip
 			long bl = buffer.getLong();
@@ -269,7 +273,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		else if(data[0] == (byte)0 && data[1] == Values.commands.RELY){
 			System.out.println("RELY PACKET");
 			byte[] l = new byte[]{data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
-			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			ByteBuffer buffer = ByteBuffer.allocate(8);
 			buffer.put(l, 0, l.length);
 			buffer.flip();//need flip
 			long bl = buffer.getLong();
@@ -283,7 +287,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	
 	public void disconnected(String reason) {
 		state = Values.connectionStates.STATE_DISCONNECTED;
-		clientManager.disconnected(reason);
+		clientManager.onDisconnected(reason);
 	}
 	
 	public void disconnect(String reason) {
@@ -303,7 +307,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			sendPacket(reponse);
 			state = Values.connectionStates.STATE_DISCONNECTED;
 		}
-		clientManager.disconnect(reason);
+		//clientManager.disconnect(reason);
 	}
 	
 	public void setPacketHandler(ClientManager packetHandler){
