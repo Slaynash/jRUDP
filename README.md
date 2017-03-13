@@ -60,4 +60,4 @@ public class Client
 ```
 
 ## Getting support
-If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the github repository, or [our french Discord](https://discord.gg/n9fUUaR) Guild in #general channel.
+If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the github repository, or contact Slaynash#2879 on [our french Discord](https://discord.gg/n9fUUaR) Guild in the #general channel.
