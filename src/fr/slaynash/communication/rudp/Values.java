@@ -7,6 +7,7 @@ public class Values {
 	public static final long PACKET_TIMEOUT_TIME_NANOSECONDS = 5000000000L;
 	public static final int VERSION_MAJOR = 1;
 	public static final int VERSION_MINOR = 0;
+	public static final int RESEVED_COMMAND_BYTES = 7;
 	
 	
 	public static class connectionStates{
