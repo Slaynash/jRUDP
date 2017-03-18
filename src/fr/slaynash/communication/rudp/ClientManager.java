@@ -1,7 +1,7 @@
 package fr.slaynash.communication.rudp;
 
 public abstract class ClientManager {
-	RUDPClient rudp;
+	protected RUDPClient rudp;
 	
 	public ClientManager(RUDPClient rudpClient) {
 		this.rudp = rudpClient;
