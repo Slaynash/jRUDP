@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import fr.slaynash.rudpUtils.BytesUtils;
+
 public class RUDPClient {//TODO remove use of ByteBuffers and use functions instead
 	
 	private int type = Values.clientType.NORMAL_CLIENT;
@@ -112,6 +114,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 								disconnected("Connection timed out");
 								return;
 							} catch (IOException e) {
+								if(state == Values.connectionStates.STATE_DISCONNECTED) return;
 								System.err.println("An error as occured while receiving a packet: ");
 								e.printStackTrace();
 							}
@@ -121,19 +124,20 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 							packet.setLength(Values.RECEIVE_MAX_SIZE);
 						}
 					}
-				});
+				}, "receive thread");
 				pingThread = new Thread(new Runnable() {
 					@Override
 					public void run() {
-						ByteBuffer timeNSBuffer = ByteBuffer.allocate(8);
 						while(state == Values.connectionStates.STATE_CONNECTED){
-							byte[] timeNSBytes = timeNSBuffer.putLong(0, System.nanoTime()).array();
+							ByteBuffer timeNSBuffer = ByteBuffer.allocate(8);
+							long time = System.nanoTime();
+							byte[] timeNSBytes = timeNSBuffer.putLong(0, time).array();
 							sendPacket(new byte[]{Values.commands.PING_REQUEST, timeNSBytes[0], timeNSBytes[1], timeNSBytes[2], timeNSBytes[3], timeNSBytes[4], timeNSBytes[5], timeNSBytes[6], timeNSBytes[7]});
 							
 							try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
 						}
 					}
-				});
+				}, "ping thread");
 				reliableThread = new Thread(new Runnable() {
 					@Override
 					public void run() {
@@ -155,6 +159,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 									i++;
 								}
 							}
+							//System.out.println("waiting "+latency*2+" miliseconds...");
 							if(latency < 25)
 								try {Thread.sleep(50);} catch (InterruptedException e) {e.printStackTrace();}
 							else
@@ -162,7 +167,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 						}
 						state = Values.connectionStates.STATE_DISCONNECTED;
 					}
-				});
+				}, "rely thread");
 				reliableThread.start();
 				receiveThread.start();
 				pingThread.start();
@@ -185,6 +190,8 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	}
 	
 	public void sendReliablePacket(byte[] data){
+		//System.out.println("Raw data: ");
+		//for(byte d:data) System.out.println(d);
 		byte[] packet = new byte[data.length+9];
 		long timeNS = System.nanoTime();
 		byte[] timeNSBytes = ByteBuffer.allocate(8).putLong(timeNS).array();
@@ -199,6 +206,9 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		packet[7] = timeNSBytes[6];
 		packet[8] = timeNSBytes[7];
 		System.arraycopy(data, 0, packet, 9, data.length);
+		//System.out.println("RPacket data: ");
+		//for(byte d:packet) System.out.println(d);
+		//System.out.println("END OF DATA");
 		
 		if(type == Values.clientType.SERVER_CHILD) server.sendPacket(packet, address, port);
 		else{
@@ -227,6 +237,8 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	}
 
 	void handlePacket(byte[] data) {
+		if(data[0] == (byte)1) System.out.println("RPacket received. handling 2... (l237)");
+		if(data[0] == (byte)1) for(byte d:data) System.out.println(d);
 		lastPacketReceiveTime = System.nanoTime();//TODO verify if it's enough efficient (System.nanoTime() is reputed for being slow)
 		if(data[0] == (byte)0 && data[1] == Values.commands.PING_REQUEST){
 			byte[] l = new byte[]{Values.commands.PING_RESPONSE, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
@@ -235,25 +247,24 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.PING_RESPONSE){
 			byte[] l = new byte[]{data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
-			ByteBuffer buffer = ByteBuffer.allocate(8);
-			buffer.put(l, 0, l.length);
-	        buffer.flip();
-	        latency = (int) ((System.nanoTime() - buffer.getLong())/1e6);
+			latency = (int) ((System.nanoTime() - BytesUtils.toLong(l))/1e6);
+			//System.out.println("latency: "+latency+"ms");
 			return;
 		}
 		else if(data[0] == (byte)1){
-			byte[] l = new byte[]{Values.commands.RELY, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
+			byte[] l = new byte[]{Values.commands.RELY, data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]};
 			sendPacket(l);
-			ByteBuffer buffer = ByteBuffer.allocate(8);
-			buffer.put(l, 0, l.length);
-			buffer.flip();//need flip
-			long bl = buffer.getLong();
+			long bl = BytesUtils.toLong(new byte[]{data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]});
 			Long packetOverTime = bl-(2000000000L);//2 seconds
+			//System.out.println("RECEIVE TIME: "+bl);
 			synchronized(packetsReceived){
 				int i = 0;
 				while(packetsReceived.size() > i){
 					long sl = packetsReceived.get(i);
-					if(sl == bl) return;
+					if(sl == bl){
+						System.out.println("Packet already received (l259)");
+						return;
+					}
 					if(sl < packetOverTime) packetsReceived.remove(i);
 					else i++;
 				}
@@ -269,7 +280,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			}
 			byte[] packetData = new byte[data.length-9];
 			System.arraycopy(data, 9, packetData, 0, data.length-9);
-			if(clientManager != null) clientManager.handleReliablePacket(data, bl);
+			if(clientManager != null) clientManager.handleReliablePacket(packetData, bl);
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.RELY){
 			System.out.println("RELY PACKET");
@@ -307,6 +318,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 		if(type == Values.clientType.NORMAL_CLIENT){
 			sendPacket(reponse);
 			state = Values.connectionStates.STATE_DISCONNECTED;
+			socket.close();
 		}
 		//clientManager.disconnect(reason);
 	}

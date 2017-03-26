@@ -52,6 +52,7 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 					if(!running) break;
 					byte[] data = new byte[packet.getLength()];
 					System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
+					if(data[0] == (byte)1) System.out.println("RPacket received. handling... (l55)");
 					/*
 					for(int i=0;i<data.length;i++) System.out.println("data["+i+"]: "+data[i]);
 					System.out.println("Reliable: "+(data[0] == (byte)1 ? "yes" : "no"));
@@ -59,6 +60,9 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 					System.out.println("Ping packet ?: "+(data[1] == Values.commands.PING ? "yes" : "no"));
 					System.out.println("handshake packet ?: "+(data[1] == Values.commands.HANDSHAKE_START ? "yes" : "no"));
 					*/
+					//System.out.println("B:");
+					//for(Byte b:data) System.out.println(b);
+					//System.out.println("END");
 					handlePacket(data, packet.getAddress(), packet.getPort());
 					packet.setLength(Values.RECEIVE_MAX_SIZE);
 				}
