@@ -237,8 +237,8 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 	}
 
 	void handlePacket(byte[] data) {
-		if(data[0] == (byte)1) System.out.println("RPacket received. handling 2... (l237)");
-		if(data[0] == (byte)1) for(byte d:data) System.out.println(d);
+		//if(data[0] == (byte)1) System.out.println("RPacket received. handling 2... (l237)");
+		//if(data[0] == (byte)1) for(byte d:data) System.out.println(d);
 		lastPacketReceiveTime = System.nanoTime();//TODO verify if it's enough efficient (System.nanoTime() is reputed for being slow)
 		if(data[0] == (byte)0 && data[1] == Values.commands.PING_REQUEST){
 			byte[] l = new byte[]{Values.commands.PING_RESPONSE, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
@@ -283,7 +283,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			if(clientManager != null) clientManager.handleReliablePacket(packetData, bl);
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.RELY){
-			System.out.println("RELY PACKET");
+			//System.out.println("RELY PACKET");
 			byte[] l = new byte[]{data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
 			ByteBuffer buffer = ByteBuffer.allocate(8);
 			buffer.put(l, 0, l.length);
