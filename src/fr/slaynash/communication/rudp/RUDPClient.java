@@ -120,7 +120,13 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 							}
 							byte[] data = new byte[packet.getLength()];
 							System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
-							handlePacket(data);
+							try {
+								handlePacket(data);
+							}
+							catch(Exception e) {
+								System.err.print("An error occured while handling packet:");
+								e.printStackTrace();
+							}
 							packet.setLength(Values.RECEIVE_MAX_SIZE);
 						}
 					}
@@ -280,7 +286,13 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			}
 			byte[] packetData = new byte[data.length-9];
 			System.arraycopy(data, 9, packetData, 0, data.length-9);
-			if(clientManager != null) clientManager.handleReliablePacket(packetData, bl);
+			if(clientManager != null) try {
+				 clientManager.handleReliablePacket(packetData, bl);
+			}
+			catch(Exception e) {
+				System.err.print("An error occured while handling reliable packet:");
+				e.printStackTrace();
+			}
 		}
 		else if(data[0] == (byte)0 && data[1] == Values.commands.RELY){
 			//System.out.println("RELY PACKET");
