@@ -6,7 +6,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +43,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 						serverDS.receive(datagramPacket);
 					} catch (IOException e) {
 						if(running){
-							System.err.println("An error as occured while receiving a packet: ");
+							System.err.println("[RUDPServer] An error as occured while receiving a packet: ");
 							e.printStackTrace();
 						}
 					}
@@ -55,7 +55,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 					datagramPacket.setLength(Values.RECEIVE_MAX_SIZE);
 				}
 			}
-		}, "Packets receiver");
+		}, "RUDPServer packets receiver");
 		
 		clientDropHandlerThread = new Thread(new Runnable() {
 			@Override
@@ -73,10 +73,10 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 							else i++;
 						}
 					}
-					try {Thread.sleep(3000);} catch (InterruptedException e) {e.printStackTrace();}
+					try {Thread.sleep(250);} catch (InterruptedException e) {e.printStackTrace();}
 				}
 			}
-		}, "client drop handler");
+		}, "RUDPServer client drop handler");
 	}
 	
 	public void start(){
@@ -84,11 +84,11 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		running = true;
 		serverThread.start();
 		clientDropHandlerThread.start();
-		System.out.println("server started on UDP port "+port);
+		System.out.println("[RUDPServer] Server started on UDP port "+port);
 	}
 	
 	private void handlePacket(byte[] data, InetAddress clientAddress, int clientPort){
-		if(data.length == 0){System.out.println("empty packet received");return;}
+		if(data.length == 0){System.out.println("[RUDPServer] Empty packet received");return;}
 		RUDPClient clientToRemove = null;
 		for(RUDPClient client:clients) if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 			if(data[1] == Values.commands.DISCONNECT){
@@ -105,10 +105,8 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		if(clientToRemove != null) synchronized (clients) { clients.remove(clientToRemove);return; }
 		
 		if(data[1] == Values.commands.HANDSHAKE_START){
-			if(ByteBuffer.wrap(new byte[]{data[2], data[3], data[4], data[5]}).getInt() != Values.VERSION_MAJOR || ByteBuffer.wrap(new byte[]{data[6], data[7], data[8], data[9]}).getInt() != Values.VERSION_MINOR){
-				byte[] error = null;
-				try {error = "Bad version !".getBytes("UTF-8");
-				} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+			if(BytesUtils.toInt(data, 2) != Values.VERSION_MAJOR || BytesUtils.toInt(data, 6) != Values.VERSION_MINOR){
+				byte[] error = "Bad version !".getBytes(StandardCharsets.UTF_8);
 				byte[] reponse = new byte[error.length+1];
 				reponse[0] = Values.commands.HANDSHAKE_ERROR;
 				System.arraycopy(error, 0, reponse, 1, error.length);
@@ -121,9 +119,9 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				synchronized(clients){
 					rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
 					clients.add(rudpclient);
-					System.out.println("added new client !");
+					System.out.println("[RUDPServer] Added new client !");
 				}
-				System.out.println("initializing client...");
+				System.out.println("[RUDPServer] Initializing client...");
 				rudpclient.initialize();
 			}
 		}
