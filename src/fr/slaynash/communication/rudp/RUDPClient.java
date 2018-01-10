@@ -83,7 +83,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 			byte[] handshakePacket = new byte[9];
 			handshakePacket[0] = Values.commands.HANDSHAKE_START;
 			BytesUtils.writeBytes(handshakePacket, 1, Values.VERSION_MAJOR);
-			BytesUtils.writeBytes(handshakePacket, 5, Values.VERSION_MAJOR);
+			BytesUtils.writeBytes(handshakePacket, 5, Values.VERSION_MINOR);
 			sendPacket(handshakePacket);
 			
 			byte[] buffer = new byte[8196];
