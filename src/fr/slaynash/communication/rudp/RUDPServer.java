@@ -9,23 +9,22 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-public class RUDPServer {// receive buffer is bigger (8096B) and client packet is dynamic (<8096B (reliable) / ~21B or ~45B (avoidable))
+public class RUDPServer {// receive buffer is bigger (4096B) and client packet is dynamic (<4096B (reliable) / ~21B or ~45B (avoidable))
 	//Packet format:
 	//
 	//data:							 type:	 	size:
 	//reliable						 [0//1]		  1
 	//long send date (nanoseconds)	 [long]		  8
-	//byte[] data					[byte[]]	<8083
+	//byte[] data					[byte[]]	<4083
 	
 	private int port;
 	private Thread serverThread = null;
 	private Thread clientDropHandlerThread = null;
 	private DatagramSocket serverDS = null;
 	
-	private List<RUDPClient> clients = Collections.synchronizedList(new ArrayList<RUDPClient>());
+	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	private boolean running = false;
 	private Class<? extends ClientManager> clientManager = null;
 	
@@ -38,11 +37,10 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 			public void run() {
 				while(running){
 					byte[] buffer = new byte[Values.RECEIVE_MAX_SIZE];
-					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+					DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 					
 					try {
-						serverDS.receive(packet);
-						//System.out.println("packet received");
+						serverDS.receive(datagramPacket);
 					} catch (IOException e) {
 						if(running){
 							System.err.println("An error as occured while receiving a packet: ");
@@ -50,21 +48,11 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 						}
 					}
 					if(!running) break;
-					byte[] data = new byte[packet.getLength()];
-					System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
-					//if(data[0] == (byte)1) System.out.println("RPacket received. handling... (l55)");
-					/*
-					for(int i=0;i<data.length;i++) System.out.println("data["+i+"]: "+data[i]);
-					System.out.println("Reliable: "+(data[0] == (byte)1 ? "yes" : "no"));
-					System.out.println("data.length: "+data.length);
-					System.out.println("Ping packet ?: "+(data[1] == Values.commands.PING ? "yes" : "no"));
-					System.out.println("handshake packet ?: "+(data[1] == Values.commands.HANDSHAKE_START ? "yes" : "no"));
-					*/
-					//System.out.println("B:");
-					//for(Byte b:data) System.out.println(b);
-					//System.out.println("END");
-					handlePacket(data, packet.getAddress(), packet.getPort());
-					packet.setLength(Values.RECEIVE_MAX_SIZE);
+					byte[] data = new byte[datagramPacket.getLength()];
+					System.arraycopy(datagramPacket.getData(), datagramPacket.getOffset(), data, 0, datagramPacket.getLength());
+					
+					handlePacket(data, datagramPacket.getAddress(), datagramPacket.getPort());
+					datagramPacket.setLength(Values.RECEIVE_MAX_SIZE);
 				}
 			}
 		}, "Packets receiver");
@@ -158,7 +146,9 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 	}
 	
 	public List<RUDPClient> getConnectedUsers(){
-		return clients;
+		synchronized (clients) {
+			return new ArrayList<RUDPClient>(clients);
+		}
 	}
 	
 	public void stop(){
@@ -167,6 +157,7 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 			running = false;
 			for(RUDPClient client:clients) client.disconnect("Server shutting down");
 		}
+		/* Seems useless, but it can be usefull in a somes cases, so here it is
 		System.out.println("Waiting for all clients to disconnect...");
 		int connections = clients.size();
 		System.out.println(connections+" connections remaining...");
@@ -180,6 +171,7 @@ public class RUDPServer {// receive buffer is bigger (8096B) and client packet i
 				connections = clients.size();
 			}
 		}
+		*/
 		serverDS.close();
 	}
 	
