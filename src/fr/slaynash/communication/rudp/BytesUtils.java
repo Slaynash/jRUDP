@@ -48,9 +48,11 @@ public abstract class BytesUtils {
 		buffer[offset+7] = (byte) (l >> 0);
 	}
 	
-	public static int toShort(byte[] buffer, int offset) {
-		return    ((buffer[offset+0] & 0xFF) << 8) 
-				| ((buffer[offset+1] & 0xFF) << 0);
+	public static short toShort(byte[] buffer, int offset) {
+		return (short) (
+				  ((buffer[offset+0] & 0xFF) << 8) 
+				| ((buffer[offset+1] & 0xFF) << 0)
+		);
 	}
 
 	public static int toInt(byte[] buffer, int offset) {
