@@ -7,7 +7,7 @@ public class Values {
 	public static final long PACKET_TIMEOUT_TIME_NANOSECONDS = 5000000000L;
 	public static final int VERSION_MAJOR = 1;
 	public static final int VERSION_MINOR = 2;
-	public static final int START_COMMAND_BYTES = -122;
+	public static final int START_COMMAND_BYTES = -121;
 	public static final long PING_INTERVAL = 1000;
 	
 	public static final byte UNRELIABLE = 0;
