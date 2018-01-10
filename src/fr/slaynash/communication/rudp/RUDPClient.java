@@ -234,17 +234,17 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 
 	void handlePacket(byte[] data) {
 		lastPacketReceiveTime = System.nanoTime();//TODO verify if it's enough efficient (System.nanoTime() is reputed for being slow)
-		if(data[0] == (byte)0 && data[1] == Values.commands.PING_REQUEST){
+		if(data[0] == Values.UNRELIABLE && data[1] == Values.commands.PING_REQUEST){
 			byte[] l = new byte[]{Values.commands.PING_RESPONSE, data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
 			sendPacket(l);//sending time received (long) // ping packet format: [IN:] Reliable CMD_PING_REPONSE sendTimeNano
 			return;
 		}
-		else if(data[0] == (byte)0 && data[1] == Values.commands.PING_RESPONSE){
+		else if(data[0] == Values.UNRELIABLE && data[1] == Values.commands.PING_RESPONSE){
 			latency = (int) ((System.nanoTime() - BytesUtils.toLong(data, 2))/1e6);
 			//System.out.println("latency: "+latency+"ms");
 			return;
 		}
-		else if(data[0] == (byte)1){
+		else if(data[0] == Values.RELIABLE){
 			byte[] l = new byte[]{Values.commands.RELY, data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]};
 			sendPacket(l);
 			long bl = BytesUtils.toLong(data, 1);
@@ -276,7 +276,7 @@ public class RUDPClient {//TODO remove use of ByteBuffers and use functions inst
 				e.printStackTrace();
 			}
 		}
-		else if(data[0] == (byte)0 && data[1] == Values.commands.RELY){
+		else if(data[0] == Values.UNRELIABLE && data[1] == Values.commands.RELY){
 			synchronized(packetsSent){
 				for(int i=0;i<packetsSent.size();i++) {
 					if(packetsSent.get(i).dateNS == BytesUtils.toLong(data, 2)){

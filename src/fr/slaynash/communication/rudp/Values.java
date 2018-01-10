@@ -9,6 +9,9 @@ public class Values {
 	public static final int VERSION_MINOR = 2;
 	public static final int START_COMMAND_BYTES = -122;
 	public static final long PING_INTERVAL = 1000;
+	
+	public static final byte UNRELIABLE = 0;
+	public static final byte RELIABLE = 1;
 
 
 	public static class commands{
