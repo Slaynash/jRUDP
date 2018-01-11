@@ -20,18 +20,146 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	//byte[] data					[byte[]]	<4083
 	
 	private int port;
+	private DatagramSocket datagramSocket = null;
+	
 	private Thread serverThread = null;
 	private Thread clientDropHandlerThread = null;
-	private DatagramSocket serverDS = null;
 	
-	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	private boolean running = false;
+	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
+	
 	private Class<? extends ClientManager> clientManager = null;
+	
+	
 	
 	public RUDPServer(int port) throws SocketException{
 		this.port = port;
-		serverDS = new DatagramSocket(port);
+		datagramSocket = new DatagramSocket(port);
 		
+		startServerThread();
+		
+		initClientDropHandler();
+	}
+	
+	public void start(){
+		if(running) return;
+		running = true;
+		
+		serverThread.start();
+		clientDropHandlerThread.start();
+		
+		System.out.println("[RUDPServer] Server started on UDP port "+port);
+	}
+	
+	private void handlePacket(byte[] data, InetAddress clientAddress, int clientPort){
+		//Check if packet is not empty
+		if(data.length == 0){
+			System.out.println("[RUDPServer] Empty packet received");
+			return;
+		}
+		
+		//check if packet is an handshake packet
+		if(data[1] == Values.commands.HANDSHAKE_START){
+			//If client is valid, add it to the list and initialize it
+			
+			if(BytesUtils.toInt(data, 2) == Values.VERSION_MAJOR && BytesUtils.toInt(data, 6) == Values.VERSION_MINOR){//version check
+				
+				sendPacket(new byte[]{Values.commands.HANDSHAKE_OK}, clientAddress, clientPort);
+				
+				final RUDPClient rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
+				synchronized(clients) {
+					clients.add(rudpclient);
+				}
+				System.out.println("[RUDPServer] Added new client !");
+				System.out.println("[RUDPServer] Initializing client...");
+				new Thread(new Runnable() {public void run() {rudpclient.initialize();}}, "RUDP Client init thread").start();
+				return;
+				
+			}
+			else {
+				//Else send HANDSHAKE_ERROR "BAD_VERSION"
+				
+				byte[] error = "Bad version !".getBytes(StandardCharsets.UTF_8);
+				byte[] reponse = new byte[error.length+1];
+				reponse[0] = Values.commands.HANDSHAKE_ERROR;
+				System.arraycopy(error, 0, reponse, 1, error.length);
+				sendPacket(reponse, clientAddress, clientPort);
+				
+			}
+		}
+		
+		//handle packet in ClientRUDP
+		RUDPClient clientToRemove = null;
+		for(RUDPClient client:clients) {
+			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
+				
+				if(data[1] == Values.commands.DISCONNECT){
+					byte[] reason = new byte[data.length-2];
+					System.arraycopy(data, 2, reason, 0, reason.length);
+					try {
+						client.disconnected(new String(reason, "UTF-8"));
+						clientToRemove = client;
+					} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+				}
+				else{
+					client.handlePacket(data);
+					return;
+				}
+				
+				break;
+			}
+		}
+		if(clientToRemove != null) {
+			synchronized (clients) {
+				clients.remove(clientToRemove);
+			}
+		}
+	}
+	
+	void sendPacket(byte[] data, InetAddress address, int port){
+		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
+        packet.setData(data);
+        try {
+			datagramSocket.send(packet);
+		} catch (IOException e) {e.printStackTrace();}
+	}
+	
+	public List<RUDPClient> getConnectedUsers(){
+		synchronized (clients) {
+			return new ArrayList<RUDPClient>(clients);
+		}
+	}
+	
+	public void stop(){
+		System.out.println("Stopping server...");
+		synchronized(clients){
+			running = false;
+			for(RUDPClient client:clients) client.disconnect("Server shutting down");
+		}
+		datagramSocket.close();
+	}
+	
+	void remove(RUDPClient client) {
+		synchronized(clients){
+			clients.remove(client);
+		}
+	}
+	
+	public void setClientPacketHandler(Class<? extends ClientManager> clientManager){
+		this.clientManager = clientManager;
+	}
+	
+	public int getPort(){
+		return port;
+	}
+
+	public boolean isRunning() {
+		return running;
+	}
+	
+	
+	
+	public void startServerThread() {
 		serverThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -40,7 +168,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 					DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 					
 					try {
-						serverDS.receive(datagramPacket);
+						datagramSocket.receive(datagramPacket);
 					} catch (IOException e) {
 						if(running){
 							System.err.println("[RUDPServer] An error as occured while receiving a packet: ");
@@ -56,126 +184,30 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				}
 			}
 		}, "RUDPServer packets receiver");
-		
+	}
+	
+	public void initClientDropHandler() {
 		clientDropHandlerThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while(running){
-					synchronized(clients){
-						long maxNS = System.nanoTime()-Values.CLIENT_TIMEOUT_TIME_NANOSECONDS;
-						int i=0;
-						while(i<clients.size()){
-							RUDPClient client = clients.get(i);
-							if(client.lastPacketReceiveTime < maxNS){
-								client.disconnected("Connection timed out");
-								clients.remove(i);
+				try {
+					while(running){
+						synchronized(clients){
+							long maxNS = System.nanoTime()-Values.CLIENT_TIMEOUT_TIME_NANOSECONDS;
+							int i=0;
+							while(i<clients.size()){
+								RUDPClient client = clients.get(i);
+								if(client.lastPacketReceiveTime < maxNS){
+									client.disconnected("Connection timed out");
+									clients.remove(i);
+								}
+								else i++;
 							}
-							else i++;
 						}
+						Thread.sleep(250);
 					}
-					try {Thread.sleep(250);} catch (InterruptedException e) {e.printStackTrace();}
-				}
+				} catch (InterruptedException e) {e.printStackTrace();}
 			}
 		}, "RUDPServer client drop handler");
-	}
-	
-	public void start(){
-		if(running) return;
-		running = true;
-		serverThread.start();
-		clientDropHandlerThread.start();
-		System.out.println("[RUDPServer] Server started on UDP port "+port);
-	}
-	
-	private void handlePacket(byte[] data, InetAddress clientAddress, int clientPort){
-		if(data.length == 0){System.out.println("[RUDPServer] Empty packet received");return;}
-		RUDPClient clientToRemove = null;
-		for(RUDPClient client:clients) if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
-			if(data[1] == Values.commands.DISCONNECT){
-				byte[] reason = new byte[data.length-2];
-				System.arraycopy(data, 2, reason, 0, reason.length);
-				try {
-					client.disconnected(new String(reason, "UTF-8"));
-					clientToRemove = client;
-				} catch (UnsupportedEncodingException e) {e.printStackTrace();}
-			}
-			else{client.handlePacket(data);return;}
-			break;
-		}
-		if(clientToRemove != null) synchronized (clients) { clients.remove(clientToRemove);return; }
-		
-		if(data[1] == Values.commands.HANDSHAKE_START){
-			if(BytesUtils.toInt(data, 2) != Values.VERSION_MAJOR || BytesUtils.toInt(data, 6) != Values.VERSION_MINOR){
-				byte[] error = "Bad version !".getBytes(StandardCharsets.UTF_8);
-				byte[] reponse = new byte[error.length+1];
-				reponse[0] = Values.commands.HANDSHAKE_ERROR;
-				System.arraycopy(error, 0, reponse, 1, error.length);
-				sendPacket(reponse, clientAddress, clientPort);
-			}
-			else{
-				sendPacket(new byte[]{Values.commands.HANDSHAKE_OK}, clientAddress, clientPort);
-				
-				RUDPClient rudpclient = null;
-				synchronized(clients){
-					rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
-					clients.add(rudpclient);
-					System.out.println("[RUDPServer] Added new client !");
-				}
-				System.out.println("[RUDPServer] Initializing client...");
-				rudpclient.initialize();
-			}
-		}
-	}
-	
-	public int getPort(){
-		return port;
-	}
-	
-	void sendPacket(byte[] data, InetAddress address, int port){
-		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-        packet.setData(data);
-        try {
-			serverDS.send(packet);
-		} catch (IOException e) {e.printStackTrace();}
-	}
-	
-	public void setClientPacketHandler(Class<? extends ClientManager> clientManager){
-		this.clientManager = clientManager;
-	}
-	
-	public List<RUDPClient> getConnectedUsers(){
-		synchronized (clients) {
-			return new ArrayList<RUDPClient>(clients);
-		}
-	}
-	
-	public void stop(){
-		System.out.println("Stopping server...");
-		synchronized(clients){
-			running = false;
-			for(RUDPClient client:clients) client.disconnect("Server shutting down");
-		}
-		/* Seems useless, but it can be usefull in a somes cases, so here it is
-		System.out.println("Waiting for all clients to disconnect...");
-		int connections = clients.size();
-		System.out.println(connections+" connections remaining...");
-		while(clients.size() > 0){
-			try {
-				Thread.sleep(300);
-			} catch (InterruptedException e) {e.printStackTrace();}
-			
-			if(clients.size() != connections){
-				System.out.println(clients.size()+" connections remaining...");
-				connections = clients.size();
-			}
-		}
-		*/
-		serverDS.close();
-	}
-	
-	void remove(RUDPClient client) {
-		synchronized(clients){
-			clients.remove(client);
-		}
 	}
 }

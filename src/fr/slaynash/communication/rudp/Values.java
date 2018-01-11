@@ -6,8 +6,8 @@ public class Values {
 	public static final long CLIENT_TIMEOUT_TIME_NANOSECONDS = 5000000000L;//5,000,000,000 nanoseconds = 5 seconds
 	public static final long PACKET_TIMEOUT_TIME_NANOSECONDS = 5000000000L;
 	public static final int VERSION_MAJOR = 1;
-	public static final int VERSION_MINOR = 2;
-	public static final int START_COMMAND_BYTES = -121;
+	public static final int VERSION_MINOR = 3;
+	public static final int START_COMMAND_BYTES = -119;
 	public static final long PING_INTERVAL = 1000;
 	
 	public static final byte UNRELIABLE = 0;
@@ -22,5 +22,7 @@ public class Values {
 		public static final byte PING_RESPONSE = -124;
 		public static final byte DISCONNECT = -123;
 		public static final byte RELY = -122;
+		public static final byte PACKETSSTATS_REQUEST = -121;
+		public static final byte PACKETSSTATS_RESPONSE = -120;
 	}
 }
