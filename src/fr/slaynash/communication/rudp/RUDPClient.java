@@ -380,7 +380,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				return;
 			}
 			if(clientManager != null) {
-				clientManager.handleReliablePacket(data);
+				clientManager.handleReliablePacket(data); //pass raw packet payload
 				/*try {
 					byte[] packetData = new byte[data.length - 9];
 					System.arraycopy(data, 9, packetData, 0, packetData.length);
@@ -402,9 +402,10 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			sendPacket(packet);
 		}
 		else if(clientManager != null) {
-			byte[] packetData = new byte[data.length - 1];
+			clientManager.handlePacket(data); //pass raw packet payload
+			/*byte[] packetData = new byte[data.length - 1];
 			System.arraycopy(data, 1, packetData, 0, packetData.length);
-			clientManager.handlePacket(packetData);
+			clientManager.handlePacket(packetData);*/
 		}
 		
 		//System.out.println(); //debug purposes
