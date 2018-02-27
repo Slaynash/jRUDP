@@ -1,4 +1,4 @@
-package fr.slaynash.communication.rudp;
+package igoodie.communication.rudp;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -10,6 +10,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import igoodie.communication.RUDPConstants;
+import igoodie.communication.handlers.PacketHandler;
+import igoodie.communication.utils.NetUtils;
 
 public class RUDPServer {// receive buffer is bigger (4096B) and client packet is dynamic (<4096B (reliable) / ~21B or ~45B (avoidable))
 	//Packet format:
@@ -28,7 +32,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	private boolean running = false;
 	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	
-	private Class<? extends ClientManager> clientManager = null;
+	private Class<? extends PacketHandler> clientManager = null;
 	
 	
 	
@@ -59,12 +63,12 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		}
 		
 		//check if packet is an handshake packet
-		if(data[1] == Values.commands.HANDSHAKE_START){
+		if(data[1] == RUDPConstants.Commands.HANDSHAKE_START){
 			//If client is valid, add it to the list and initialize it
 			
-			if(BytesUtils.toInt(data, 2) == Values.VERSION_MAJOR && BytesUtils.toInt(data, 6) == Values.VERSION_MINOR){//version check
+			if(NetUtils.asInt(data, 2) == RUDPConstants.VERSION_MAJOR && NetUtils.asInt(data, 6) == RUDPConstants.VERSION_MINOR){//version check
 				
-				sendPacket(new byte[]{Values.commands.HANDSHAKE_OK}, clientAddress, clientPort);
+				sendPacket(new byte[]{RUDPConstants.Commands.HANDSHAKE_OK}, clientAddress, clientPort);
 				
 				final RUDPClient rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
 				synchronized(clients) {
@@ -81,7 +85,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				
 				byte[] error = "Bad version !".getBytes(StandardCharsets.UTF_8);
 				byte[] reponse = new byte[error.length+1];
-				reponse[0] = Values.commands.HANDSHAKE_ERROR;
+				reponse[0] = RUDPConstants.Commands.HANDSHAKE_ERROR;
 				System.arraycopy(error, 0, reponse, 1, error.length);
 				sendPacket(reponse, clientAddress, clientPort);
 				
@@ -93,7 +97,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		for(RUDPClient client:clients) {
 			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 				
-				if(data[1] == Values.commands.DISCONNECT){
+				if(data[1] == RUDPConstants.Commands.DISCONNECT){
 					byte[] reason = new byte[data.length-2];
 					System.arraycopy(data, 2, reason, 0, reason.length);
 					try {
@@ -145,7 +149,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		}
 	}
 	
-	public void setClientPacketHandler(Class<? extends ClientManager> clientManager){
+	public void setClientPacketHandler(Class<? extends PacketHandler> clientManager){
 		this.clientManager = clientManager;
 	}
 	
@@ -164,7 +168,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 			@Override
 			public void run() {
 				while(running){
-					byte[] buffer = new byte[Values.RECEIVE_MAX_SIZE];
+					byte[] buffer = new byte[RUDPConstants.RECEIVE_MAX_SIZE];
 					DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 					
 					try {
@@ -180,7 +184,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 					System.arraycopy(datagramPacket.getData(), datagramPacket.getOffset(), data, 0, datagramPacket.getLength());
 					
 					handlePacket(data, datagramPacket.getAddress(), datagramPacket.getPort());
-					datagramPacket.setLength(Values.RECEIVE_MAX_SIZE);
+					datagramPacket.setLength(RUDPConstants.RECEIVE_MAX_SIZE);
 				}
 			}
 		}, "RUDPServer packets receiver");
@@ -193,7 +197,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				try {
 					while(running){
 						synchronized(clients){
-							long maxNS = System.nanoTime()-Values.CLIENT_TIMEOUT_TIME_NANOSECONDS;
+							long maxNS = System.nanoTime()-RUDPConstants.CLIENT_TIMEOUT_TIME_NANOSECONDS;
 							int i=0;
 							while(i<clients.size()){
 								RUDPClient client = clients.get(i);

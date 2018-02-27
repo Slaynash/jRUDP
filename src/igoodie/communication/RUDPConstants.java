@@ -1,6 +1,6 @@
-package fr.slaynash.communication.rudp;
+package igoodie.communication;
 
-public class Values {
+public class RUDPConstants {
 	public static final int RECEIVE_MAX_SIZE = 4096;
 	public static final int CLIENT_TIMEOUT_TIME = 5000;
 	public static final long CLIENT_TIMEOUT_TIME_NANOSECONDS = 5000000000L;//5,000,000,000 nanoseconds = 5 seconds
@@ -13,8 +13,7 @@ public class Values {
 	public static final byte UNRELIABLE = 0;
 	public static final byte RELIABLE = 1;
 
-
-	public static class commands{
+	public static class Commands {
 		public static final byte HANDSHAKE_START = -128;
 		public static final byte HANDSHAKE_OK = -127;
 		public static final byte HANDSHAKE_ERROR = -126;

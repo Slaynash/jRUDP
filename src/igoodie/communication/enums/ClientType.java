@@ -1,4 +1,4 @@
-package fr.slaynash.communication.rudp;
+package igoodie.communication.enums;
 
 public enum ClientType {
 	NORMAL_CLIENT,

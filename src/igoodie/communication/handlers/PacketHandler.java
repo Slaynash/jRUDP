@@ -1,17 +1,26 @@
-package fr.slaynash.communication.rudp;
+package igoodie.communication.handlers;
 
-public abstract class ClientManager {
-	protected RUDPClient rudp;
+import igoodie.communication.rudp.RUDPClient;
+
+public abstract class PacketHandler {
+	/* Fields */
+	public RUDPClient rudp;
 	
-	public ClientManager(RUDPClient rudpClient) {
+	/* Constructors */
+	public PacketHandler(RUDPClient rudpClient) {
 		this.rudp = rudpClient;
 	}
 	
+	/* Methods */
 	public abstract void initializeClient();
+	
 	public abstract void onDisconnected(String reason);
+	
 	public void disconnect(String reason){
 		rudp.disconnect(reason);
 	}
+	
 	public abstract void handlePacket(byte[] data);
+	
 	public abstract void handleReliablePacket(byte[] data, long sendNS);
 }
