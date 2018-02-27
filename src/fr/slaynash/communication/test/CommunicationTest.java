@@ -35,6 +35,30 @@ public class CommunicationTest {
 		
 	}
 	
+	public static class ClientPHandler extends PacketHandler {
+		public static final ClientPHandler instance = new ClientPHandler();
+
+		public ClientPHandler() {
+			super(null);
+		}
+
+		@Override
+		public void onDisconnected(String reason) {}
+		
+		@Override
+		public void initializeClient() {}
+		
+		@Override
+		public void handleReliablePacket(byte[] data, long sendNS) {
+			System.out.println("Reliable: " + NetUtils.asHexString(data));
+		}
+		
+		@Override
+		public void handlePacket(byte[] data) {
+			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
+		}
+	}
+	
 	public static void test() {
 		initServer();
 		
@@ -61,23 +85,7 @@ public class CommunicationTest {
 	private static void initClient() {
 		try {
 			client = new RUDPClient(InetAddress.getByName("localhost"), 1111);
-			client.setPacketHandler(new PacketHandler(client) {
-				@Override
-				public void onDisconnected(String reason) {}
-				
-				@Override
-				public void initializeClient() {}
-				
-				@Override
-				public void handleReliablePacket(byte[] data, long sendNS) {
-					System.out.println("Reliable: " + NetUtils.asHexString(data));
-				}
-				
-				@Override
-				public void handlePacket(byte[] data) {
-					System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
-				}
-			});
+			client.setPacketHandler(ClientPHandler.instance);
 			client.connect();
 		}
 		catch(SocketException e) {
