@@ -380,7 +380,8 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				return;
 			}
 			if(clientManager != null) {
-				try {
+				clientManager.handleReliablePacket(data);
+				/*try {
 					byte[] packetData = new byte[data.length - 9];
 					System.arraycopy(data, 9, packetData, 0, packetData.length);
 					clientManager.handleReliablePacket(packetData, bl);
@@ -388,7 +389,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				catch(Exception e) {
 					System.err.print("[RUDPClient] An error occured while handling reliable packet:");
 					e.printStackTrace();
-				}
+				}*/
 			}
 		}
 		else if(data[0] == RUDPConstants.UNRELIABLE && data[1] == RUDPConstants.Commands.PACKETSSTATS_REQUEST){

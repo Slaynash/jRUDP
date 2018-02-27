@@ -92,7 +92,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		
 		//handle packet in ClientRUDP
 		RUDPClient clientToRemove = null;
-		for(RUDPClient client:clients) {
+		for(RUDPClient client : clients) {
 			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 				
 				if(data[1] == RUDPConstants.Commands.DISCONNECT){

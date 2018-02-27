@@ -1,4 +1,4 @@
-package fr.slaynash.communication.test;
+package fr.slaynash.test;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,7 +31,7 @@ public class CommunicationTest {
 		public void handlePacket(byte[] data) {}
 
 		@Override
-		public void handleReliablePacket(byte[] data, long sendNS) {}
+		public void handleReliablePacket(byte[] data) {}
 		
 	}
 	
@@ -49,7 +49,7 @@ public class CommunicationTest {
 		public void initializeClient() {}
 		
 		@Override
-		public void handleReliablePacket(byte[] data, long sendNS) {
+		public void handleReliablePacket(byte[] data) {
 			System.out.println("Reliable: " + NetUtils.asHexString(data));
 		}
 		

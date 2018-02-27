@@ -8,18 +8,30 @@ import java.net.UnknownHostException;
  */
 public abstract class NetUtils {
 	/* Readers */
+	public static short asShort(byte[] buffer) {
+		return asShort(buffer, 0);
+	}
+	
 	public static short asShort(byte[] buffer, int offset) {
 		return (short) (
 				  ((buffer[offset+0] & 0xFF) << 8) 
 				| ((buffer[offset+1] & 0xFF) << 0)
 		);
 	}
-
+	
+	public static int asInt(byte[] buffer) {
+		return asInt(buffer, 0);
+	}
+	
 	public static int asInt(byte[] buffer, int offset) {
 		return    ((buffer[offset+0] & 0xFF) << 24)
 				| ((buffer[offset+1] & 0xFF) << 16) 
 				| ((buffer[offset+2] & 0xFF) << 8) 
 				| ((buffer[offset+3] & 0xFF) << 0);
+	}
+	
+	public static long asLong(byte[] buffer) {
+		return asLong(buffer, 0);
 	}
 
 	public static long asLong(byte[] buffer, int offset) {
@@ -32,6 +44,10 @@ public abstract class NetUtils {
 				| ((long)(buffer[offset+6] & 0xFF) << 8) 
 				| ((long)(buffer[offset+7] & 0xFF) << 0);
 	}
+	
+	public static float asFloat(byte[] buffer) {
+		return asFloat(buffer, 0);
+	}
 
 	public static float asFloat(byte[] buffer, int offset) {
 		return Float.intBitsToFloat(
@@ -40,6 +56,10 @@ public abstract class NetUtils {
 				| ((buffer[offset+2] & 0xFF) << 8) 
 				| ((buffer[offset+3] & 0xFF) << 0)
 		);
+	}
+	
+	public static double asDouble(byte[] buffer) {
+		return asDouble(buffer, 0);
 	}
 
 	public static double asDouble(byte[] buffer, int offset) {
@@ -123,6 +143,7 @@ public abstract class NetUtils {
 	}
 
 	public static String asHexString(byte[] source) {
+		if(source.length == 0) return "";
 		StringBuilder sb = new StringBuilder("0x");
 		
 		for(int i=0; i<source.length; i++) {
@@ -158,6 +179,7 @@ public abstract class NetUtils {
 	}
 	
 	public static String asBinString(byte[] source) {
+		if(source.length == 0) return "";
 		StringBuilder sb = new StringBuilder("0b");
 		
 		for(int i=0; i<source.length; i++) {

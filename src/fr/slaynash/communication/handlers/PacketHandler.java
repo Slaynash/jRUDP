@@ -22,5 +22,5 @@ public abstract class PacketHandler {
 	
 	public abstract void handlePacket(byte[] data);
 	
-	public abstract void handleReliablePacket(byte[] data, long sendNS);
+	public abstract void handleReliablePacket(byte[] data);
 }
