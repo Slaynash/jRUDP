@@ -1,4 +1,4 @@
-package igoodie.communication.enums;
+package fr.slaynash.communication.enums;
 
 public enum ConnectionState {
 	STATE_DISCONNECTED,

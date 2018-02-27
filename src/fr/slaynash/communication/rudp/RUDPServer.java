@@ -1,4 +1,4 @@
-package igoodie.communication.rudp;
+package fr.slaynash.communication.rudp;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import igoodie.communication.RUDPConstants;
-import igoodie.communication.handlers.PacketHandler;
-import igoodie.communication.utils.NetUtils;
+import fr.slaynash.communication.RUDPConstants;
+import fr.slaynash.communication.handlers.PacketHandler;
+import fr.slaynash.communication.utils.NetUtils;
 
 public class RUDPServer {// receive buffer is bigger (4096B) and client packet is dynamic (<4096B (reliable) / ~21B or ~45B (avoidable))
 	//Packet format:
@@ -24,17 +24,15 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	//byte[] data					[byte[]]	<4083
 	
 	private int port;
-	private DatagramSocket datagramSocket = null;
+	private DatagramSocket datagramSocket;
 	
-	private Thread serverThread = null;
-	private Thread clientDropHandlerThread = null;
+	private Thread serverThread;
+	private Thread clientDropHandlerThread;
 	
 	private boolean running = false;
 	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	
-	private Class<? extends PacketHandler> clientManager = null;
-	
-	
+	private Class<? extends PacketHandler> clientManager;
 	
 	public RUDPServer(int port) throws SocketException{
 		this.port = port;
@@ -160,8 +158,6 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	public boolean isRunning() {
 		return running;
 	}
-	
-	
 	
 	public void startServerThread() {
 		serverThread = new Thread(new Runnable() {

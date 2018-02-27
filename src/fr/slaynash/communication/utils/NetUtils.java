@@ -1,4 +1,4 @@
-package igoodie.communication.utils;
+package fr.slaynash.communication.utils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -99,12 +99,20 @@ public abstract class NetUtils {
 		buffer[offset+7] = (byte) (l >> 0);
 	}
 	
-	/**/
+	/* Truncators */
 	public static String truncateString(String str, int max) {
 		if(str.length() <= max) return str;
-		return str.substring(0, max);
+		return str.substring(0, max); //Truncate rightmost chars
 	}
 	
+	public static int truncateToInt(long num) {
+		String s1 = num + "";
+		return Integer.parseInt(s1.substring(Math.max(s1.length() - 9, 0)));
+		//Evil digit truncator from long to int.
+		//Might be a little bit slow, but there is no way to do it as we know
+	}
+	
+	/**/
 	public static InetAddress getInternetAdress(String host) {
 		try {
 			return InetAddress.getByName(host);
@@ -113,4 +121,51 @@ public abstract class NetUtils {
 			return null;
 		}
 	}
+
+	public static String asHexString(byte[] source) {
+		StringBuilder sb = new StringBuilder("0x");
+		
+		for(int i=0; i<source.length; i++) {
+			sb.append(String.format("%02X", source[i]));
+			if(i != source.length-1) sb.append("_");
+		}
+		
+		return sb.toString().trim();
+	}
+	
+	public static String asHexString(long num) {
+		String hex = String.format("%016X", num);
+		StringBuilder sb = new StringBuilder("0x");
+		
+		for(int i=0; i<hex.length()-4; i+=4) {
+			sb.append(hex.substring(i, i+4) + "_");
+		}
+		sb.append(hex.substring(12, 16));
+		
+		return sb.toString();
+	}
+	
+	public static String asHexString(int num) {
+		String hex = String.format("%08X", num);
+		StringBuilder sb = new StringBuilder("0x");
+		
+		for(int i=0; i<hex.length()-4; i+=4) {
+			sb.append(hex.substring(i, i+4) + "_");
+		}
+		sb.append(hex.substring(4, 8));
+		
+		return sb.toString();
+	}
+	
+	public static String asBinString(byte[] source) {
+		StringBuilder sb = new StringBuilder("0b");
+		
+		for(int i=0; i<source.length; i++) {
+			sb.append(String.format("%8s", Integer.toBinaryString(source[i])));
+			if(i != source.length-1) sb.append("_");
+		}
+		
+		return sb.toString().trim().replace(" ", "0");
+	}
+
 }

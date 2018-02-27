@@ -1,6 +1,6 @@
-package igoodie.communication.handlers;
+package fr.slaynash.communication.handlers;
 
-import igoodie.communication.rudp.RUDPClient;
+import fr.slaynash.communication.rudp.RUDPClient;
 
 public abstract class PacketHandler {
 	/* Fields */
