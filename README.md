@@ -11,50 +11,52 @@ This project requires those to be installed on your system:
 ```java
 public class Server
 {
+    public static RUDPServer serverInstance;
     public static final int SERVER_PORT = 56448;
     public static void main(String[] args)
     {
-        RUDPServer server = null;
-        try{
-            server = new RUDPServer(SERVER_PORT);
-        }catch(Exception e){
-            System.err.println("Unable to start server at port "+SERVER_PORT+" :");
-            e.printStackTrace();
-            System.exit(1);
-        }
-        
-        server.setClientPacketHandler(ClientHandler.class);
-		server.start();
-        
-        //some code
-        
-        server.stop();
-    }
+        try {
+		serverInstance = new RUDPServer(SERVER_PORT);
+		serverInstance.setClientPacketHandler(ServerPHandler.class);
+		serverInstance.start();
+	}
+	catch(SocketException e) {
+		System.out.println("Port " + SERVER_PORT + " is occupied. Server couldn't be initialized.");
+		System.exit(-1);
+	}
+	
+	for(RUDPClient c : serverInstance.getConnectedUsers()) {
+		c.sendPacket(new byte[]{0x00}); //send data to every client
+	}
+	
+	serverInstance.stop();
 }
 ```
 
 ```java
 public class Client
 {
+    public static final InetAddress SERVER_HOST = NetUtils.getInternetAdress("localhost");
     public static final int SERVER_PORT = 56448;
     public static void main(String[] args)
     {
-        InetAddress SERVER_INETADDRESS = InetAddress.getByName("127.0.0.1");
-        RUDPClient client = null;
-        try{
-            client = new RUDPClient(SERVER_INETADDRESS, SERVER_PORT);
-        }catch(Exception e){
-            System.err.println("Unable to start server at port "+SERVER_PORT+" :");
-            e.printStackTrace();
-            System.exit(1);
-        }
-        
-        client.setClientPacketHandler(Client.class);
+        try {
+		client = new RUDPClient(SERVER_HOST, SERVER_PORT);
+		client.setPacketHandler(ClientPHandler.instance);
 		client.connect();
-        
-        //some code
-        
-        client.disconnect("Disconnected by user");
+	}
+	catch(SocketException e) {
+		System.out.println("Cannot allow port for the client. Client can't be launched.");
+		System.exit(-1);
+	}
+	catch(UnknownHostException e) {
+		System.out.println("Couldn't connect to " + SERVER_HOST + ":" + SERVER_PORT + ".");
+		System.exit(-1);
+	}
+	catch(SocketTimeoutException e) {}
+	catch(IOException e) {}
+	
+	client.sendPacket(new byte[]{0x00}); //Send packet to the server
     }
 }
 ```

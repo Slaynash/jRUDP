@@ -403,7 +403,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				return;
 			}
 			if(clientManager != null) {
-				clientManager.handleReliablePacket(data); //pass raw packet payload
+				clientManager.receiveReliablePacket(data); //pass raw packet payload
 				/*try {
 					byte[] packetData = new byte[data.length - 9];
 					System.arraycopy(data, 9, packetData, 0, packetData.length);

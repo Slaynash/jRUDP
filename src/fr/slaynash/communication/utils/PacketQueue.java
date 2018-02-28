@@ -13,8 +13,8 @@ public class PacketQueue {
 	public static class PacketNSComparator implements Comparator<Packet> {
 		@Override
 		public int compare(Packet o1, Packet o2) {
-			if(o1.getHeader().getReceivedNs() == o2.getHeader().getReceivedNs()) return 0;
-			return o1.getHeader().getReceivedNs() < o2.getHeader().getReceivedNs() ? -1 : 1;
+			if(o1.getHeader().getSequenceNo() == o2.getHeader().getSequenceNo()) return 0;
+			return o1.getHeader().getSequenceNo() < o2.getHeader().getSequenceNo() ? -1 : 1;
 		}
 	}
 	
