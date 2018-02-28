@@ -3,9 +3,9 @@ A Reliable-capable UDP Library for multiplayer games (or other)
 
 ### Compile and run
 #### Requirements
-This project requires thoes to be installed on your system:
+This project requires those to be installed on your system:
 - Eclipse IDE
-- Java 6+
+- Java 8+
 
 #### Examples:
 ```java
