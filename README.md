@@ -15,7 +15,6 @@ public class Server
     public static final int SERVER_PORT = 56448;
     public static void main(String[] args)
     {
-        RUDPServer server = null;
         try {
 		serverInstance = new RUDPServer(SERVER_PORT);
 		serverInstance.setClientPacketHandler(ServerPHandler.class);
