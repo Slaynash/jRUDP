@@ -36,11 +36,11 @@ public abstract class Packet { //TODO impl the base
 
 	public Packet(byte[] data) {
 		//Parse header
-		header.isReliable = data[0] == RUDPConstants.RELIABLE;
+		header.isReliable = data[0] == RUDPConstants.PacketType.RELIABLE;
 		header.truncNs = NetUtils.asInt(data, 1);
 
 		//Parse payload
-		rawPayload = new byte[data.length - 5];
+		rawPayload = new byte[data.length - 3];
 		System.arraycopy(data, 5, rawPayload, 0, rawPayload.length);
 	}
 
