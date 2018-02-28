@@ -7,6 +7,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import fr.slaynash.communication.handlers.PacketHandler;
+import fr.slaynash.communication.rudp.Packet;
 import fr.slaynash.communication.rudp.RUDPClient;
 import fr.slaynash.communication.rudp.RUDPServer;
 import fr.slaynash.communication.utils.NetUtils;
@@ -31,11 +32,11 @@ public class CommunicationTest {
 		public void handlePacket(byte[] data) {}
 
 		@Override
-		public void handleReliablePacket(byte[] data) {}
+		public void receiveReliablePacket(byte[] data) {}
 		
 	}
 	
-	public static class ClientPHandler extends PacketHandler {
+	public static class ClientPHandler extends fr.slaynash.communication.handlers.ClientPHandler {
 		public static final ClientPHandler instance = new ClientPHandler();
 
 		public ClientPHandler() {
@@ -49,13 +50,18 @@ public class CommunicationTest {
 		public void initializeClient() {}
 		
 		@Override
-		public void handleReliablePacket(byte[] data) {
-			System.out.println("Reliable: " + NetUtils.asHexString(data));
+		public void receiveReliablePacket(byte[] data) {
+			super.receiveReliablePacket(data);
 		}
 		
 		@Override
 		public void handlePacket(byte[] data) {
 			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
+		}
+		
+		@Override
+		public void handleReliablePacketOrdered(Packet packet) {
+			super.handleReliablePacketOrdered(packet);
 		}
 	}
 	
@@ -67,7 +73,9 @@ public class CommunicationTest {
 		initClient();
 		
 		server.getConnectedUsers().get(0).sendPacket(new byte[]{1});
-		server.getConnectedUsers().get(0).sendReliablePacket(new byte[]{1});
+		for(int i=0; i<100; i++) {
+			server.getConnectedUsers().get(0).sendReliablePacket(new byte[]{1});
+		}
 	}
 
 	private static void initServer() {
@@ -98,5 +106,9 @@ public class CommunicationTest {
 		}
 		catch(SocketTimeoutException e) {}
 		catch(IOException e) {}
+	}
+
+	public static void main(String[] args) {
+		test();
 	}
 }

@@ -9,23 +9,25 @@ import fr.slaynash.communication.utils.NetUtils;
  */
 public abstract class Packet { //TODO impl the base
 
+	public static final int HEADER_SIZE = 3; //bytes
+	
 	public static class PacketHeader {		
 		private boolean isReliable = false;
-		private int truncNs = -1;
+		private short sequenceNum;
 
 		public boolean isReliable() {
 			return isReliable;
 		}
 
-		public int getReceivedNs() {
-			return truncNs;
+		public int getSequenceNo() {
+			return sequenceNum;
 		}
 
 		@Override
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("Reliable:" + isReliable + ", ");
-			sb.append("ReceivedNS:" + truncNs);
+			sb.append("SequenceNo:" + sequenceNum);
 			return sb.toString();
 		}
 	}
@@ -37,11 +39,11 @@ public abstract class Packet { //TODO impl the base
 	public Packet(byte[] data) {
 		//Parse header
 		header.isReliable = data[0] == RUDPConstants.PacketType.RELIABLE;
-		header.truncNs = NetUtils.asInt(data, 1);
+		header.sequenceNum = NetUtils.asShort(data, 1);
 
 		//Parse payload
-		rawPayload = new byte[data.length - 3];
-		System.arraycopy(data, 5, rawPayload, 0, rawPayload.length);
+		rawPayload = new byte[data.length - HEADER_SIZE];
+		System.arraycopy(data, HEADER_SIZE, rawPayload, 0, rawPayload.length);
 	}
 
 	/* Getter and Setters */
