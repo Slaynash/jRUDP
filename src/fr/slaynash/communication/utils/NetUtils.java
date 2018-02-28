@@ -191,8 +191,8 @@ public abstract class NetUtils {
 	}
 	
 	public static byte[] getPacketPayloadFromRaw(byte[] rawpacket) {
-		byte[] packetData = new byte[rawpacket.length - 9];
-		System.arraycopy(rawpacket, 9, packetData, 0, packetData.length);
+		byte[] packetData = new byte[rawpacket.length - 3];
+		System.arraycopy(rawpacket, 3, packetData, 0, packetData.length);
 		return packetData;
 	}
 	

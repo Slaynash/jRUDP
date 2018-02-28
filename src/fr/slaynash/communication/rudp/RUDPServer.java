@@ -21,7 +21,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	//data:							 type:	 	size:
 	//packet type					[byte]		  1
 	//sequence id					[short]	 	  2
-	//payload						[byte[]]	<4093
+	//payload						[byte[]]	<4094
 	
 	private int port;
 	private DatagramSocket datagramSocket;
