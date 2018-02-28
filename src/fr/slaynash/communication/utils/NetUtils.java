@@ -189,5 +189,16 @@ public abstract class NetUtils {
 		
 		return sb.toString().trim().replace(" ", "0");
 	}
+	
+	public static byte[] getPacketPayloadFromRaw(byte[] rawpacket) {
+		byte[] packetData = new byte[rawpacket.length - 3];
+		System.arraycopy(rawpacket, 3, packetData, 0, packetData.length);
+		return packetData;
+	}
+	
+	public static boolean sequence_greater_than( short s1, short s2 ){
+        return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
+               ( ( s1 < s2 ) && ( s2 - s1  > 32768 ) );
+    }
 
 }
