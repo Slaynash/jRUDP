@@ -196,9 +196,19 @@ public abstract class NetUtils {
 		return packetData;
 	}
 	
+	/* Hacky-wack Methods */
 	public static boolean sequence_greater_than( short s1, short s2 ){
         return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
                ( ( s1 < s2 ) && ( s2 - s1  > 32768 ) );
     }
+	
+	public static byte byteIncrement(byte num) {
+		if(num == Byte.MAX_VALUE) return Byte.MIN_VALUE;
+		return (byte) (num + 1);
+	}
 
+	public static short shortIncrement(short num) {
+		if(num == Short.MAX_VALUE) return Short.MIN_VALUE;
+		return (short) (num + 1);
+	}
 }
