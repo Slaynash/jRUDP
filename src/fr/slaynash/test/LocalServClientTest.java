@@ -34,6 +34,11 @@ public class LocalServClientTest {
 		public void onPacketReceived(byte[] data) {
 			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
 		}
+		
+		@Override
+		public void onDisconnected(String reason) {
+			System.out.println("DC reason: " + reason);
+		}
 	}
 	
 	public static void test() {
@@ -47,6 +52,8 @@ public class LocalServClientTest {
 		for(int i=0; i<100; i++) {
 			server.getConnectedUsers().get(0).sendReliablePacket(new byte[]{1});
 		}
+		
+		server.stop();
 	}
 
 	private static void initServer() {

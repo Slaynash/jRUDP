@@ -53,6 +53,7 @@ public class RouterClientTest extends JFrame {
 		@Override
 		public void onReliablePacketReceived(byte[] data) {
 			super.onReliablePacketReceived(data);
+			gui_instance.lblRecPacketQueue.setText("Received Packet Queue (Front==index#0) (Size:" + reliableQueue.size() + ")");
 			gui_instance.modelRecPackets.clear();
 
 			Iterator<Packet> iter = reliableQueue.iterator();
@@ -80,6 +81,12 @@ public class RouterClientTest extends JFrame {
 			prevHandled = Short.MAX_VALUE;
 			gui_instance.disconnectWGui();
 		}
+		
+		public void onDisconnectManual() {
+			super.onDisconnected("Manual");
+			System.out.println("[INFO]Disconnected.");
+			prevHandled = Short.MAX_VALUE;
+		}
 	}
 
 	public RUDPClient clientInstance;
@@ -90,6 +97,7 @@ public class RouterClientTest extends JFrame {
 	private JButton btnConnection;
 	private JTextArea taHandledPacket;
 	private JTextArea taConsole;
+	private JLabel lblRecPacketQueue;
 
 	private RouterClientTest() {
 		setResizable(false);
@@ -105,7 +113,7 @@ public class RouterClientTest extends JFrame {
 		scrollPane.setBounds(10, 69, 263, 156);
 		getContentPane().add(scrollPane);
 
-		JLabel lblRecPacketQueue = new JLabel("Received Packet Queue (Front==index#0)");
+		lblRecPacketQueue = new JLabel("Received Packet Queue (Front==index#0)");
 		scrollPane.setColumnHeaderView(lblRecPacketQueue);
 
 		JList<String> listPacketQueue = new JList<>();
@@ -219,7 +227,8 @@ public class RouterClientTest extends JFrame {
 
 	private void disconnectWGui() {
 		clientInstance.disconnect("DC");
-		btnConnection.setText("Connect");		
+		ClientPacketHandler.instance.onDisconnectManual();
+		btnConnection.setText("Connect");	
 	}
 
 	/* Unique Main Method */

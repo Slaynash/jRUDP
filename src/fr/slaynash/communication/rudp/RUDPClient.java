@@ -155,7 +155,6 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		reliableThread = new Thread(()-> {
 			try {
 				while(state == ConnectionState.STATE_CONNECTING || state == ConnectionState.STATE_CONNECTED || (state == ConnectionState.STATE_DISCONNECTING && !packetsSent.isEmpty())){
-					if(!isConnected()) return;
 					synchronized(packetsSent){
 						long currentMS = System.currentTimeMillis();
 						long minMS = currentMS+(latency*2);
@@ -249,7 +248,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			sendPacket(RUDPConstants.PacketType.DISCONNECT_FROMCLIENT, reponse);
 			state = ConnectionState.STATE_DISCONNECTED;
 			socket.close();
-			if(clientManager != null) clientManager.onDisconnected(reason);
+			//if(clientManager != null) clientManager.onDisconnected(reason);
 		}
 		//clientManager.disconnect(reason);
 	}
