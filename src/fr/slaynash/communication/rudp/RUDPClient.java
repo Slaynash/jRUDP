@@ -82,8 +82,8 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		this.port = clientPort;
 		this.server = rudpServer;
 		this.type = ClientType.SERVER_CHILD;
-		this.sentReliable = 1;
-		this.sent = 1;
+		this.sentReliable = 0;
+		this.sent = 0;
 		Constructor<? extends PacketHandler> constructor;
 		try {
 			constructor = clientManager.getConstructor(RUDPClient.class);
@@ -335,7 +335,6 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 
 		//Counter
 		if(RUDPConstants.isPacketReliable(data[0])) {
-			receivedReliable++;
 			
 			//System.out.println("RELIABLE");
 			
@@ -357,10 +356,10 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				}
 				if(storedSeq.getValue() < currentTime) it.remove();//XXX use another thread ?
 			}
+			receivedReliable++;
 			packetsReceived.put(seq, packetOverTime);
 		}
-		else if(data[0] != RUDPConstants.PacketType.RELY)
-			received++;
+		else received++;
 
 		if(data[0] == RUDPConstants.PacketType.RELY) {
 
@@ -426,7 +425,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		}
 		else if(data[0] == RUDPConstants.PacketType.PACKETSSTATS_REQUEST){
 			byte[] packet = new byte[17];
-			NetUtils.writeBytes(packet, 0, sent);
+			NetUtils.writeBytes(packet, 0, sent+1); // Add one to count the current packet
 			NetUtils.writeBytes(packet, 4, sentReliable);
 			NetUtils.writeBytes(packet, 8, received);
 			NetUtils.writeBytes(packet, 12, receivedReliable);
