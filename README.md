@@ -21,7 +21,7 @@ public class Server
     {
         try {
 		serverInstance = new RUDPServer(SERVER_PORT);
-		serverInstance.setClientPacketHandler(ServerPHandler.class);
+		serverInstance.setClientPacketHandler(OrderedPacketHandler.class);
 		serverInstance.start();
 	}
 	catch(SocketException e) {
@@ -46,7 +46,7 @@ public class Client
     {
         try {
 		client = new RUDPClient(SERVER_HOST, SERVER_PORT);
-		client.setPacketHandler(ClientPHandler.instance);
+		client.setPacketHandler(OrderedPacketHandler.instance); //Assuming you have a new OrderedPacketHandler instance stored
 		client.connect();
 	}
 	catch(SocketException e) {

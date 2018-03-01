@@ -5,12 +5,12 @@ import fr.slaynash.communication.rudp.RUDPClient;
 import fr.slaynash.communication.utils.NetUtils;
 import fr.slaynash.communication.utils.PacketQueue;
 
-public class ClientPHandler extends PacketHandler {
+public class OrderedPacketHandler extends PacketHandler {
 	
 	private PacketQueue reliableQueue = new PacketQueue();
 	private short lastHandledSeq = Short.MAX_VALUE;
 
-	public ClientPHandler(RUDPClient rudpClient) {
+	public OrderedPacketHandler(RUDPClient rudpClient) {
 		super(rudpClient);
 	}
 
@@ -44,6 +44,6 @@ public class ClientPHandler extends PacketHandler {
 	}
 	
 	public void handleReliablePacketOrdered(Packet packet) {
-		System.out.println(packet); //Print packet just to test
+		System.out.println("Received: " + packet); //Print packet just to test
 	}
 }

@@ -39,7 +39,7 @@ public class CommunicationTest {
 		
 	}
 	
-	public static class ClientPHandler extends fr.slaynash.communication.handlers.ClientPHandler {
+	public static class ClientPHandler extends fr.slaynash.communication.handlers.OrderedPacketHandler {
 		public static final ClientPHandler instance = new ClientPHandler();
 
 		public ClientPHandler() {
