@@ -21,10 +21,13 @@ public class ClientPHandler extends PacketHandler {
 	public void onDisconnected(String reason) {}
 
 	@Override
-	public void handlePacket(byte[] data) {}
+	public void onPacketReceived(byte[] data) {}
 
 	@Override
-	public void receiveReliablePacket(byte[] data) {
+	public void onRemoteStatsReturned(int sentRemote, int sentRemoteR, int receivedRemote, int receivedRemoteR) {}
+
+	@Override
+	public void onReliablePacketReceived(byte[] data) {
 		Packet packet = new Packet(data) {}; //Parse packet
 		short inc = NetUtils.shortIncrement(lastHandledSeq); //last+1
 		

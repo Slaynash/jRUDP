@@ -20,7 +20,9 @@ public abstract class PacketHandler {
 		rudp.disconnect(reason);
 	}
 	
-	public abstract void handlePacket(byte[] data);
+	public abstract void onPacketReceived(byte[] data);
 	
-	public abstract void receiveReliablePacket(byte[] data);
+	public abstract void onReliablePacketReceived(byte[] data);
+
+	public abstract void onRemoteStatsReturned(int sentRemote, int sentRemoteR, int receivedRemote, int receivedRemoteR);
 }
