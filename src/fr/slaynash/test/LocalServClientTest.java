@@ -6,65 +6,33 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
-import fr.slaynash.communication.handlers.PacketHandler;
-import fr.slaynash.communication.rudp.Packet;
+import fr.slaynash.communication.handlers.OrderedPacketHandler;
+import fr.slaynash.communication.handlers.PacketHandlerAdapter;
 import fr.slaynash.communication.rudp.RUDPClient;
 import fr.slaynash.communication.rudp.RUDPServer;
 import fr.slaynash.communication.utils.NetUtils;
 
-public class CommunicationTest {
+public class LocalServClientTest {
 	private static RUDPServer server;
 	private static RUDPClient client;
 	
-	public static class ServerPHandler extends PacketHandler {
+	public static class ServerPHandler extends PacketHandlerAdapter {
 
 		public ServerPHandler(RUDPClient rudpClient) {
 			super(rudpClient);
 		}
-
-		@Override
-		public void initializeClient() {}
-
-		@Override
-		public void onDisconnected(String reason) {}
-
-		@Override
-		public void onPacketReceived(byte[] data) {}
-
-		@Override
-		public void onReliablePacketReceived(byte[] data) {}
-
-		@Override
-		public void onRemoteStatsReturned(int sentRemote, int sentRemoteR, int receivedRemote, int receivedRemoteR) {}
-		
 	}
 	
-	public static class ClientPHandler extends fr.slaynash.communication.handlers.OrderedPacketHandler {
+	public static class ClientPHandler extends OrderedPacketHandler {
 		public static final ClientPHandler instance = new ClientPHandler();
 
 		public ClientPHandler() {
 			super(null);
 		}
-
-		@Override
-		public void onDisconnected(String reason) {}
-		
-		@Override
-		public void initializeClient() {}
-		
-		@Override
-		public void onReliablePacketReceived(byte[] data) {
-			super.onReliablePacketReceived(data);
-		}
-		
+	
 		@Override
 		public void onPacketReceived(byte[] data) {
 			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
-		}
-		
-		@Override
-		public void handleReliablePacketOrdered(Packet packet) {
-			super.handleReliablePacketOrdered(packet);
 		}
 	}
 	

@@ -1,6 +1,7 @@
 package fr.slaynash.communication.rudp;
 
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -68,12 +69,12 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				sendPacket(new byte[]{RUDPConstants.PacketType.HANDSHAKE_OK}, clientAddress, clientPort);
 				
 				final RUDPClient rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
-				synchronized(clients) {
+				synchronized(clients) { 
 					clients.add(rudpclient);
 				}
 				System.out.println("[RUDPServer] Added new client !");
 				System.out.println("[RUDPServer] Initializing client...");
-				new Thread(new Runnable() {public void run() {rudpclient.initialize();}}, "RUDP Client init thread").start();
+				new Thread(() -> {rudpclient.initialize();}, "RUDP Client init thread").start();
 				return;
 				
 			}
@@ -134,7 +135,9 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		System.out.println("Stopping server...");
 		synchronized(clients){
 			running = false;
-			for(RUDPClient client:clients) client.disconnect("Server shutting down");
+			for(RUDPClient client : clients) {
+				client.disconnect("Server shutting down");
+			}
 		}
 		datagramSocket.close();
 	}
@@ -146,7 +149,11 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	}
 	
 	public void setClientPacketHandler(Class<? extends PacketHandler> clientManager){
-		this.clientManager = clientManager;
+		if(Modifier.isAbstract(clientManager.getModifiers())) { //Class should not be abstract!
+			throw new IllegalArgumentException("Given handler class cannot be an abstract class!");
+		}
+		
+		this.clientManager =  clientManager;
 	}
 	
 	public int getPort(){

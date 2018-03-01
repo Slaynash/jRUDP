@@ -7,8 +7,8 @@ import fr.slaynash.communication.utils.PacketQueue;
 
 public class OrderedPacketHandler extends PacketHandler {
 	
-	private PacketQueue reliableQueue = new PacketQueue();
-	private short lastHandledSeq = Short.MAX_VALUE;
+	protected PacketQueue reliableQueue = new PacketQueue();
+	protected short lastHandledSeq = Short.MAX_VALUE;
 
 	public OrderedPacketHandler(RUDPClient rudpClient) {
 		super(rudpClient);
@@ -18,7 +18,10 @@ public class OrderedPacketHandler extends PacketHandler {
 	public void initializeClient() {}
 
 	@Override
-	public void onDisconnected(String reason) {}
+	public void onDisconnected(String reason) {
+		reliableQueue = new PacketQueue();
+		lastHandledSeq = Short.MAX_VALUE;
+	}
 
 	@Override
 	public void onPacketReceived(byte[] data) {}

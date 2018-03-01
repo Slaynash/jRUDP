@@ -155,6 +155,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		reliableThread = new Thread(()-> {
 			try {
 				while(state == ConnectionState.STATE_CONNECTING || state == ConnectionState.STATE_CONNECTED || (state == ConnectionState.STATE_DISCONNECTING && !packetsSent.isEmpty())){
+					if(!isConnected()) return;
 					synchronized(packetsSent){
 						long currentMS = System.currentTimeMillis();
 						long minMS = currentMS+(latency*2);
@@ -248,6 +249,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			sendPacket(RUDPConstants.PacketType.DISCONNECT_FROMCLIENT, reponse);
 			state = ConnectionState.STATE_DISCONNECTED;
 			socket.close();
+			if(clientManager != null) clientManager.onDisconnected(reason);
 		}
 		//clientManager.disconnect(reason);
 	}
@@ -323,7 +325,11 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		}
 		sent++;
 	}
-
+	
+	public void requestRemoteStats() {
+		sendPacket(RUDPConstants.PacketType.PACKETSSTATS_REQUEST, new byte[0]);
+	}
+	
 	/**
 	 * Handles received packet assuming server won't send any empty packets. (data.len != 0)
 	 * @param data Header and payload of received packet
@@ -453,13 +459,22 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		//System.out.println(); //debug purposes
 	}
 
+	/* Getters & Setters */
+	public InetAddress getAddress() {
+		return address;
+	}
+	
+	public int getPort() {
+		return port;
+	}
+	
+	public boolean isConnected() {
+		return state == ConnectionState.STATE_CONNECTED;
+	}
+	
 	public void setPacketHandler(PacketHandler packetHandler){
 		packetHandler.rudp = this;
 		this.clientManager = packetHandler;
-	}
-	
-	public void requestRemoteStats() {
-		sendPacket(RUDPConstants.PacketType.PACKETSSTATS_REQUEST, new byte[0]);
 	}
 
 	public int getLatency(){

@@ -1,6 +1,7 @@
 package fr.slaynash.communication.utils;
 
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.PriorityQueue;
 
 import fr.slaynash.communication.rudp.Packet;
@@ -10,7 +11,8 @@ import fr.slaynash.communication.rudp.Packet;
  * @author iGoodie
  */
 public class PacketQueue {
-	public static class PacketNSComparator implements Comparator<Packet> {
+	
+	public static class PacketSeqComparator implements Comparator<Packet> {
 		@Override
 		public int compare(Packet o1, Packet o2) {
 			if(o1.getHeader().getSequenceNo() == o2.getHeader().getSequenceNo()) return 0;
@@ -21,7 +23,7 @@ public class PacketQueue {
 	private PriorityQueue<Packet> packetQueue;
 	
 	public PacketQueue() {
-		packetQueue = new PriorityQueue<>(new PacketNSComparator());
+		packetQueue = new PriorityQueue<>(new PacketSeqComparator());
 	}
 
 	public void enqueue(Packet packet) {
@@ -42,6 +44,10 @@ public class PacketQueue {
 	
 	public boolean isEmpty() {
 		return packetQueue.isEmpty();
+	}
+	
+	public Iterator<Packet> iterator() {
+		return packetQueue.iterator();
 	}
 
 	/*public static void main(String[] args) { //Test queue

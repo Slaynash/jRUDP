@@ -19,7 +19,7 @@ public abstract class Packet { //TODO impl the base
 			return isReliable;
 		}
 
-		public int getSequenceNo() {
+		public short getSequenceNo() {
 			return sequenceNum;
 		}
 
@@ -32,10 +32,11 @@ public abstract class Packet { //TODO impl the base
 		}
 	}
 
+	/* Fields*/
 	private PacketHeader header = new PacketHeader();
-
 	private byte[] rawPayload;
 
+	/* Constructor */
 	public Packet(byte[] data) {
 		//Parse header
 		header.isReliable = RUDPConstants.isPacketReliable(data[0]);
@@ -51,6 +52,10 @@ public abstract class Packet { //TODO impl the base
 		return header;
 	}
 
+	public byte[] getRawPayload() {
+		return rawPayload;
+	}
+	
 	/* Overrides */
 	@Override
 	public String toString() {
