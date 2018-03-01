@@ -1,13 +1,17 @@
 # Reliable-UDP-library
-A Reliable-capable UDP Library for multiplayer games (or other)
+A Reliable Java UDP Library for multiplayer games and more
 
-### Compile and run
+Specials thanks
+---
+Special Thanks to [iGoodie](https://github.com/iGoodie) for the work he had done and the help he gave me on this project
+
+Compile and run
+---
 #### Requirements
-This project requires those to be installed on your system:
-- Eclipse IDE
-- Java 8+
+To use this library, you only need to have java 8 or newer. No additional libraries required !
 
-#### Examples:
+Examples:
+---
 ```java
 public class Server
 {
@@ -24,11 +28,11 @@ public class Server
 		System.out.println("Port " + SERVER_PORT + " is occupied. Server couldn't be initialized.");
 		System.exit(-1);
 	}
-	
+
 	for(RUDPClient c : serverInstance.getConnectedUsers()) {
 		c.sendPacket(new byte[]{0x00}); //send data to every client
 	}
-	
+
 	serverInstance.stop();
 }
 ```
@@ -55,11 +59,11 @@ public class Client
 	}
 	catch(SocketTimeoutException e) {}
 	catch(IOException e) {}
-	
+
 	client.sendPacket(new byte[]{0x00}); //Send packet to the server
     }
 }
 ```
 
 ## Getting support
-If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the github repository, or contact Slaynash#2879 on [our french Discord](https://discord.gg/n9fUUaR) Guild in the #general channel.
+If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the Github repository, send me an email at [slaynash@survival-machines.fr](mailto:slaynash@survival-machines.fr), or contact me on Discord (Slaynash#2879).
