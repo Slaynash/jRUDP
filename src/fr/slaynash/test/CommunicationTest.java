@@ -29,10 +29,13 @@ public class CommunicationTest {
 		public void onDisconnected(String reason) {}
 
 		@Override
-		public void handlePacket(byte[] data) {}
+		public void onPacketReceived(byte[] data) {}
 
 		@Override
-		public void receiveReliablePacket(byte[] data) {}
+		public void onReliablePacketReceived(byte[] data) {}
+
+		@Override
+		public void onRemoteStatsReturned(int sentRemote, int sentRemoteR, int receivedRemote, int receivedRemoteR) {}
 		
 	}
 	
@@ -50,12 +53,12 @@ public class CommunicationTest {
 		public void initializeClient() {}
 		
 		@Override
-		public void receiveReliablePacket(byte[] data) {
-			super.receiveReliablePacket(data);
+		public void onReliablePacketReceived(byte[] data) {
+			super.onReliablePacketReceived(data);
 		}
 		
 		@Override
-		public void handlePacket(byte[] data) {
+		public void onPacketReceived(byte[] data) {
 			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
 		}
 		

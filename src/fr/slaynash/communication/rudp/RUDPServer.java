@@ -1,7 +1,6 @@
 package fr.slaynash.communication.rudp;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -95,13 +94,12 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		for(RUDPClient client : clients) {
 			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 				
-				if(data[3] == RUDPConstants.Commands.DISCONNECT){
+				if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMCLIENT){
 					byte[] reason = new byte[data.length-2];
 					System.arraycopy(data, 2, reason, 0, reason.length);
-					try {
-						client.disconnected(new String(reason, "UTF-8"));
-						clientToRemove = client;
-					} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+					
+					client.disconnected(new String(reason, StandardCharsets.UTF_8));
+					clientToRemove = client;
 				}
 				else{
 					client.handlePacket(data);

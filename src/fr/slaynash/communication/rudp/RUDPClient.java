@@ -1,7 +1,6 @@
 package fr.slaynash.communication.rudp;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.DatagramPacket;
@@ -140,10 +139,9 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		pingThread = new Thread(()->{
 			try {
 				while(state == ConnectionState.STATE_CONNECTED){
-					byte[] pingPacket = new byte[9];
-					pingPacket[0] = RUDPConstants.Commands.PING_REQUEST;
-					NetUtils.writeBytes(pingPacket, 1, System.currentTimeMillis());
-					sendPacket(pingPacket);
+					byte[] pingPacket = new byte[8];
+					NetUtils.writeBytes(pingPacket, 0, System.currentTimeMillis());
+					sendPacket(RUDPConstants.PacketType.PING_REQUEST, pingPacket);
 
 					Thread.sleep(RUDPConstants.PING_INTERVAL);
 				}
@@ -240,19 +238,14 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 
 	public void disconnect(String reason) {
 		if(state == ConnectionState.STATE_DISCONNECTED) return;
-		byte[] reasonB = null;
-		try {reasonB = reason.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException e) {e.printStackTrace();}
-		byte[] reponse = new byte[reasonB.length+1];
-		System.arraycopy(reasonB, 0, reponse, 1, reasonB.length);
-
-		reponse[0] = RUDPConstants.Commands.DISCONNECT;
+		byte[] reponse = reason.getBytes(StandardCharsets.UTF_8);
+		
 		if(type == ClientType.SERVER_CHILD){
-			sendReliablePacket(reponse);
+			sendReliablePacket(RUDPConstants.PacketType.DISCONNECT_FROMSERVER, reponse);
 			state = ConnectionState.STATE_DISCONNECTING;
 		}
 		if(type == ClientType.NORMAL_CLIENT){
-			sendPacket(reponse);
+			sendPacket(RUDPConstants.PacketType.DISCONNECT_FROMCLIENT, reponse);
 			state = ConnectionState.STATE_DISCONNECTED;
 			socket.close();
 		}
@@ -272,9 +265,13 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		}
 		return rep;
 	}
-	 */
+	*/
 
 	public void sendReliablePacket(byte[] data){
+		sendReliablePacket(RUDPConstants.PacketType.RELIABLE, data);
+	}
+
+	public void sendReliablePacket(byte packetType, byte[] data){
 		byte[] packet = new byte[data.length+3];
 		long timeMS = System.currentTimeMillis();
 		short seq = getReliablePacketSequence();
@@ -283,7 +280,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		//BytesUtils.writeBytes(dp, 0, timeNS);
 		//System.out.println("[RUDPClient] reliable packet sent "+toStringRepresentation(dp)+" - "+timeNS);
 
-		packet[0] = (byte)1;
+		packet[0] = packetType;
 		NetUtils.writeBytes(packet, 1, seq);
 		System.arraycopy(data, 0, packet, 3, data.length);
 		if(type == ClientType.SERVER_CHILD) server.sendPacket(packet, address, port);
@@ -303,10 +300,14 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 
 	public void sendPacket(byte[] data){
+		sendPacket(RUDPConstants.PacketType.UNRELIABLE, data);
+	}
+	
+	private void sendPacket(byte packetType, byte[] data){
 		byte[] packet = new byte[data.length+3];
-		short seq = getUneliablePacketSequence();
+		short seq = getUnreliablePacketSequence();
 		
-		packet[0] = (byte)0;
+		packet[0] = packetType;
 		NetUtils.writeBytes(packet, 1, seq);
 		System.arraycopy(data, 0, packet, 3, data.length);
 
@@ -333,51 +334,14 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		lastPacketReceiveTime = System.currentTimeMillis(); //Assume packet received when handling started
 
 		//Counter
-		if(data[0] == RUDPConstants.PacketType.UNRELIABLE && data[3] != RUDPConstants.Commands.RELY)
-			received++;
-		else if(data[0] == RUDPConstants.PacketType.RELIABLE)
+		if(RUDPConstants.isPacketReliable(data[0])) {
 			receivedReliable++;
-
-		if(data[0] == RUDPConstants.PacketType.UNRELIABLE && data[3] == RUDPConstants.Commands.RELY) {
-
-			//byte[] dp = new byte[] {data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
-
-			//System.out.println("RELY RECEIVED "+toStringRepresentation(dp)+" - "+BytesUtils.toLong(data, 2));
-			synchronized(packetsSent){
-				for(int i=0;i<packetsSent.size();i++) {
-					if(packetsSent.get(i).seq == NetUtils.asShort(data, 4)){
-						packetsSent.remove(i);
-						//System.out.println("FOUND AND REMOVED FROM LIST");
-						return;
-					}
-				}
-			}
-			return;
-		}
-		else if(data[0] == RUDPConstants.PacketType.UNRELIABLE && data[3] == RUDPConstants.Commands.PING_REQUEST) {
-			short seq = NetUtils.asShort(data, 1);
-			if(NetUtils.sequence_greater_than(seq, lastPingSeq)) {
-				lastPingSeq = seq;
-				byte[] l = new byte[]{RUDPConstants.Commands.PING_RESPONSE, data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]};
-				sendPacket(l);//sending time received (long) // ping packet format: [IN:] Reliable CMD_PING_REPONSE sendTimeNano
-			}
-			return;
-		}
-		else if(data[0] == RUDPConstants.PacketType.UNRELIABLE && data[3] == RUDPConstants.Commands.PING_RESPONSE) {
-			short seq = NetUtils.asShort(data, 1);
-			if(NetUtils.sequence_greater_than(seq, lastPingSeq)) {
-				lastPingSeq = seq;
-				latency = (int) (System.currentTimeMillis() - NetUtils.asLong(data, 4));
-				if(latency < 5) latency = 5;
-			}
-			//System.out.println("latency: "+latency+"ms");
-			return;
-		}
-		else if(data[0] == RUDPConstants.PacketType.RELIABLE) {
-
+			
+			//System.out.println("RELIABLE");
+			
 			//Send rely packet
-			byte[] l = new byte[]{RUDPConstants.Commands.RELY, data[1], data[2]};
-			sendPacket(l);
+			byte[] l = new byte[]{data[1], data[2]};
+			sendPacket(RUDPConstants.PacketType.RELY, l);
 
 			//save to received packet list
 			short seq = NetUtils.asShort(data, 1);
@@ -394,16 +358,61 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				if(storedSeq.getValue() < currentTime) it.remove();//XXX use another thread ?
 			}
 			packetsReceived.put(seq, packetOverTime);
+		}
+		else if(data[0] != RUDPConstants.PacketType.RELY)
+			received++;
+
+		if(data[0] == RUDPConstants.PacketType.RELY) {
+
+			//byte[] dp = new byte[] {data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]};
+
+			//System.out.println("RELY RECEIVED "+toStringRepresentation(dp)+" - "+BytesUtils.toLong(data, 2));
+			synchronized(packetsSent){
+				for(int i=0;i<packetsSent.size();i++) {
+					if(packetsSent.get(i).seq == NetUtils.asShort(data, 3)){
+						packetsSent.remove(i);
+						//System.out.println("FOUND AND REMOVED FROM LIST");
+						return;
+					}
+				}
+			}
+			return;
+		}
+		else if(data[0] == RUDPConstants.PacketType.PING_REQUEST) {
+			short seq = NetUtils.asShort(data, 1);
+			if(NetUtils.sequence_greater_than(seq, lastPingSeq)) {
+				lastPingSeq = seq;
+				byte[] l = new byte[]{data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10]};
+				sendPacket(RUDPConstants.PacketType.PING_RESPONSE, l);//sending time received (long) // ping packet format: [IN:] CMD_PING_REPONSE seqId sendMilliseconds
+			}
+			return;
+		}
+		else if(data[0] == RUDPConstants.PacketType.PING_RESPONSE) {
+			short seq = NetUtils.asShort(data, 1);
+			if(NetUtils.sequence_greater_than(seq, lastPingSeq)) {
+				lastPingSeq = seq;
+				latency = (int) (System.currentTimeMillis() - NetUtils.asLong(data, 3));
+				if(latency < 5) latency = 5;
+			}
+			//System.out.println("latency: "+latency+"ms");
+			return;
+		}
+		else if(data[0] == RUDPConstants.PacketType.RELIABLE) {
 
 			//handle reliable packet
-			if(data[3] == RUDPConstants.Commands.DISCONNECT){
-				byte[] packetData = new byte[data.length-4];
-				System.arraycopy(data, 4, packetData, 0, data.length-4);
+			if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMSERVER){
+				byte[] packetData = new byte[data.length-3];
+				System.arraycopy(data, 3, packetData, 0, data.length-3);
 				disconnected(new String(packetData, StandardCharsets.UTF_8));
 				return;
 			}
 			if(clientManager != null) {
-				clientManager.receiveReliablePacket(data); //pass raw packet payload
+				try {
+					clientManager.onReliablePacketReceived(data); //pass raw packet payload
+				}catch(Exception e) {
+					System.err.print("[RUDPClient] An error occured while handling reliable packet:");
+					e.printStackTrace();
+				}
 				/*try {
 					byte[] packetData = new byte[data.length - 9];
 					System.arraycopy(data, 9, packetData, 0, packetData.length);
@@ -415,17 +424,28 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				}*/
 			}
 		}
-		else if(data[0] == RUDPConstants.PacketType.UNRELIABLE && data[3] == RUDPConstants.Commands.PACKETSSTATS_REQUEST){
+		else if(data[0] == RUDPConstants.PacketType.PACKETSSTATS_REQUEST){
 			byte[] packet = new byte[17];
-			packet[0] = RUDPConstants.Commands.PACKETSSTATS_RESPONSE;
-			NetUtils.writeBytes(packet, 1, sent);
-			NetUtils.writeBytes(packet, 5, sentReliable);
-			NetUtils.writeBytes(packet, 9, received);
-			NetUtils.writeBytes(packet, 13, receivedReliable);
-			sendPacket(packet);
+			NetUtils.writeBytes(packet, 0, sent);
+			NetUtils.writeBytes(packet, 4, sentReliable);
+			NetUtils.writeBytes(packet, 8, received);
+			NetUtils.writeBytes(packet, 12, receivedReliable);
+			sendPacket(RUDPConstants.PacketType.PACKETSSTATS_RESPONSE, packet);
+		}
+		else if(data[0] == RUDPConstants.PacketType.PACKETSSTATS_RESPONSE) {
+			int sentRemote = NetUtils.asInt(data, 3);
+			int sentRemoteR = NetUtils.asInt(data, 7);
+			int receivedRemote = NetUtils.asInt(data, 11);
+			int receivedRemoteR = NetUtils.asInt(data, 15);
+			clientManager.onRemoteStatsReturned(sentRemote, sentRemoteR, receivedRemote, receivedRemoteR);
 		}
 		else if(clientManager != null) {
-			clientManager.handlePacket(data); //pass raw packet payload
+			try {
+				clientManager.onPacketReceived(data); //pass raw packet payload
+			}catch(Exception e) {
+				System.err.print("[RUDPClient] An error occured while handling packet:");
+				e.printStackTrace();
+			}
 			/*byte[] packetData = new byte[data.length - 1];
 			System.arraycopy(data, 1, packetData, 0, packetData.length);
 			clientManager.handlePacket(packetData);*/
@@ -437,6 +457,10 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	public void setPacketHandler(PacketHandler packetHandler){
 		packetHandler.rudp = this;
 		this.clientManager = packetHandler;
+	}
+	
+	public void requestRemoteStats() {
+		sendPacket(RUDPConstants.PacketType.PACKETSSTATS_REQUEST, new byte[0]);
 	}
 
 	public int getLatency(){
@@ -477,7 +501,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		else return sequanceReliable++;
 	}
 	
-	private short getUneliablePacketSequence() {
+	private short getUnreliablePacketSequence() {
 		if(sequanceUnreliable == Short.MAX_VALUE) {
 			sequanceUnreliable = Short.MIN_VALUE;
 			return Short.MAX_VALUE;

@@ -38,7 +38,7 @@ public abstract class Packet { //TODO impl the base
 
 	public Packet(byte[] data) {
 		//Parse header
-		header.isReliable = data[0] == RUDPConstants.PacketType.RELIABLE;
+		header.isReliable = RUDPConstants.isPacketReliable(data[0]);
 		header.sequenceNum = NetUtils.asShort(data, 1);
 
 		//Parse payload
