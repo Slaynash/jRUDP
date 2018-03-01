@@ -1,63 +1,69 @@
 # Reliable-UDP-library
-A Reliable-capable UDP Library for multiplayer games (or other)
+A Reliable Java UDP Library for multiplayer games and more
 
-### Compile and run
+Specials thanks
+---
+Special Thanks to [iGoodie](https://github.com/iGoodie) for the work he had done and the help he gave me on this project
+
+Compile and run
+---
 #### Requirements
-This project requires thoes to be installed on your system:
-- Eclipse IDE
-- Java 6+
+To use this library, you only need to have java 8 or newer. No additional libraries required !
 
-#### Examples:
+Examples:
+---
 ```java
 public class Server
 {
+    public static RUDPServer serverInstance;
     public static final int SERVER_PORT = 56448;
     public static void main(String[] args)
     {
-        RUDPServer server = null;
-        try{
-            server = new RUDPServer(SERVER_PORT);
-        }catch(Exception e){
-            System.err.println("Unable to start server at port "+SERVER_PORT+" :");
-            e.printStackTrace();
-            System.exit(1);
-        }
-        
-        server.setClientPacketHandler(ClientHandler.class);
-		server.start();
-        
-        //some code
-        
-        server.stop();
-    }
+        try {
+		serverInstance = new RUDPServer(SERVER_PORT);
+		serverInstance.setClientPacketHandler(OrderedPacketHandler.class);
+		serverInstance.start();
+	}
+	catch(SocketException e) {
+		System.out.println("Port " + SERVER_PORT + " is occupied. Server couldn't be initialized.");
+		System.exit(-1);
+	}
+
+	for(RUDPClient c : serverInstance.getConnectedUsers()) {
+		c.sendPacket(new byte[]{0x00}); //send data to every client
+	}
+
+	serverInstance.stop();
 }
 ```
 
 ```java
 public class Client
 {
+    public static final InetAddress SERVER_HOST = NetUtils.getInternetAdress("localhost");
     public static final int SERVER_PORT = 56448;
     public static void main(String[] args)
     {
-        InetAddress SERVER_INETADDRESS = InetAddress.getByName("127.0.0.1");
-        RUDPClient client = null;
-        try{
-            client = new RUDPClient(SERVER_INETADDRESS, SERVER_PORT);
-        }catch(Exception e){
-            System.err.println("Unable to start server at port "+SERVER_PORT+" :");
-            e.printStackTrace();
-            System.exit(1);
-        }
-        
-        client.setClientPacketHandler(Client.class);
+        try {
+		client = new RUDPClient(SERVER_HOST, SERVER_PORT);
+		client.setPacketHandler(OrderedPacketHandler.instance); //Assuming you have a new OrderedPacketHandler instance stored
 		client.connect();
-        
-        //some code
-        
-        client.disconnect("Disconnected by user");
+	}
+	catch(SocketException e) {
+		System.out.println("Cannot allow port for the client. Client can't be launched.");
+		System.exit(-1);
+	}
+	catch(UnknownHostException e) {
+		System.out.println("Couldn't connect to " + SERVER_HOST + ":" + SERVER_PORT + ".");
+		System.exit(-1);
+	}
+	catch(SocketTimeoutException e) {}
+	catch(IOException e) {}
+
+	client.sendPacket(new byte[]{0x00}); //Send packet to the server
     }
 }
 ```
 
 ## Getting support
-If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the github repository, or contact Slaynash#2879 on [our french Discord](https://discord.gg/n9fUUaR) Guild in the #general channel.
+If you have any question or you found a problem, you can [open an issue](https://github.com/Slaynash/Reliable-UDP-library/issues) on the Github repository, send me an email at [slaynash@survival-machines.fr](mailto:slaynash@survival-machines.fr), or contact me on Discord (Slaynash#2879).

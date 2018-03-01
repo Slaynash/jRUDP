@@ -1,7 +1,6 @@
 package fr.slaynash.communication.rudp;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -11,26 +10,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import fr.slaynash.communication.RUDPConstants;
+import fr.slaynash.communication.handlers.PacketHandler;
+import fr.slaynash.communication.utils.NetUtils;
+
 public class RUDPServer {// receive buffer is bigger (4096B) and client packet is dynamic (<4096B (reliable) / ~21B or ~45B (avoidable))
 	//Packet format:
 	//
 	//data:							 type:	 	size:
-	//reliable						 [0//1]		  1
-	//long send date (nanoseconds)	 [long]		  8
-	//byte[] data					[byte[]]	<4083
+	//packet type					[byte]		  1
+	//sequence id					[short]	 	  2
+	//payload						[byte[]]	<4094
 	
 	private int port;
-	private DatagramSocket datagramSocket = null;
+	private DatagramSocket datagramSocket;
 	
-	private Thread serverThread = null;
-	private Thread clientDropHandlerThread = null;
+	private Thread serverThread;
+	private Thread clientDropHandlerThread;
 	
 	private boolean running = false;
 	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	
-	private Class<? extends ClientManager> clientManager = null;
-	
-	
+	private Class<? extends PacketHandler> clientManager;
 	
 	public RUDPServer(int port) throws SocketException{
 		this.port = port;
@@ -59,12 +60,12 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		}
 		
 		//check if packet is an handshake packet
-		if(data[1] == Values.commands.HANDSHAKE_START){
+		if(data[0] == RUDPConstants.PacketType.HANDSHAKE_START){
 			//If client is valid, add it to the list and initialize it
 			
-			if(BytesUtils.toInt(data, 2) == Values.VERSION_MAJOR && BytesUtils.toInt(data, 6) == Values.VERSION_MINOR){//version check
+			if(NetUtils.asInt(data, 1) == RUDPConstants.VERSION_MAJOR && NetUtils.asInt(data, 5) == RUDPConstants.VERSION_MINOR){//version check
 				
-				sendPacket(new byte[]{Values.commands.HANDSHAKE_OK}, clientAddress, clientPort);
+				sendPacket(new byte[]{RUDPConstants.PacketType.HANDSHAKE_OK}, clientAddress, clientPort);
 				
 				final RUDPClient rudpclient = new RUDPClient(clientAddress, clientPort, this, clientManager);
 				synchronized(clients) {
@@ -81,7 +82,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				
 				byte[] error = "Bad version !".getBytes(StandardCharsets.UTF_8);
 				byte[] reponse = new byte[error.length+1];
-				reponse[0] = Values.commands.HANDSHAKE_ERROR;
+				reponse[0] = RUDPConstants.PacketType.HANDSHAKE_ERROR;
 				System.arraycopy(error, 0, reponse, 1, error.length);
 				sendPacket(reponse, clientAddress, clientPort);
 				
@@ -90,16 +91,15 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		
 		//handle packet in ClientRUDP
 		RUDPClient clientToRemove = null;
-		for(RUDPClient client:clients) {
+		for(RUDPClient client : clients) {
 			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 				
-				if(data[1] == Values.commands.DISCONNECT){
+				if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMCLIENT){
 					byte[] reason = new byte[data.length-2];
 					System.arraycopy(data, 2, reason, 0, reason.length);
-					try {
-						client.disconnected(new String(reason, "UTF-8"));
-						clientToRemove = client;
-					} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+					
+					client.disconnected(new String(reason, StandardCharsets.UTF_8));
+					clientToRemove = client;
 				}
 				else{
 					client.handlePacket(data);
@@ -116,7 +116,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		}
 	}
 	
-	void sendPacket(byte[] data, InetAddress address, int port){
+	protected void sendPacket(byte[] data, InetAddress address, int port){
 		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
         packet.setData(data);
         try {
@@ -145,7 +145,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		}
 	}
 	
-	public void setClientPacketHandler(Class<? extends ClientManager> clientManager){
+	public void setClientPacketHandler(Class<? extends PacketHandler> clientManager){
 		this.clientManager = clientManager;
 	}
 	
@@ -157,14 +157,12 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		return running;
 	}
 	
-	
-	
 	public void startServerThread() {
 		serverThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while(running){
-					byte[] buffer = new byte[Values.RECEIVE_MAX_SIZE];
+					byte[] buffer = new byte[RUDPConstants.RECEIVE_MAX_SIZE];
 					DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 					
 					try {
@@ -180,7 +178,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 					System.arraycopy(datagramPacket.getData(), datagramPacket.getOffset(), data, 0, datagramPacket.getLength());
 					
 					handlePacket(data, datagramPacket.getAddress(), datagramPacket.getPort());
-					datagramPacket.setLength(Values.RECEIVE_MAX_SIZE);
+					datagramPacket.setLength(RUDPConstants.RECEIVE_MAX_SIZE);
 				}
 			}
 		}, "RUDPServer packets receiver");
@@ -193,11 +191,11 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 				try {
 					while(running){
 						synchronized(clients){
-							long maxNS = System.nanoTime()-Values.CLIENT_TIMEOUT_TIME_NANOSECONDS;
+							long maxMS = System.currentTimeMillis()-RUDPConstants.CLIENT_TIMEOUT_TIME_MILLISECONDS;
 							int i=0;
 							while(i<clients.size()){
 								RUDPClient client = clients.get(i);
-								if(client.lastPacketReceiveTime < maxNS){
+								if(client.lastPacketReceiveTime < maxMS){
 									client.disconnected("Connection timed out");
 									clients.remove(i);
 								}
