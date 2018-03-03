@@ -24,7 +24,6 @@ public class LocalServClientTest {
 	}
 	
 	public static class ClientPHandler extends OrderedPacketHandler {
-		public static final ClientPHandler instance = new ClientPHandler();
 
 		public ClientPHandler() {
 			super(null);
@@ -37,6 +36,7 @@ public class LocalServClientTest {
 		
 		@Override
 		public void onDisconnectedByRemote(String reason) {
+			super.onDisconnectedByRemote(reason);
 			System.out.println("DC reason: " + reason);
 		}
 	}
@@ -71,7 +71,7 @@ public class LocalServClientTest {
 	private static void initClient() {
 		try {
 			client = new RUDPClient(InetAddress.getByName("localhost"), 1111);
-			client.setPacketHandler(ClientPHandler.instance);
+			client.setPacketHandler(ClientPHandler.class);
 			client.connect();
 		}
 		catch(SocketException e) {
@@ -83,6 +83,8 @@ public class LocalServClientTest {
 			System.exit(-1);
 		}
 		catch(SocketTimeoutException e) {}
+		catch(InstantiationException e) {}
+		catch(IllegalAccessException e) {}
 		catch(IOException e) {}
 	}
 

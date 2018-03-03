@@ -48,7 +48,8 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	long lastPacketReceiveTime;
 	public ConnectionState state = ConnectionState.STATE_DISCONNECTED;
 	private DatagramSocket socket;
-	private PacketHandler clientManager;
+	private PacketHandler packetHandler;
+	private Class<? extends PacketHandler> packetHandlerClass;
 
 	private Thread reliableThread;
 	private Thread receiveThread;
@@ -70,11 +71,6 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	public RUDPClient(InetAddress address, int port) throws SocketException{
 		this.address = address;
 		this.port = port;
-
-		socket = new DatagramSocket();
-		socket.setSoTimeout(RUDPConstants.CLIENT_TIMEOUT_TIME);
-
-		lastPacketReceiveTime = System.currentTimeMillis();
 	}
 
 	RUDPClient(InetAddress clientAddress, int clientPort, RUDPServer rudpServer, Class<? extends PacketHandler> clientManager) {
@@ -87,7 +83,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		Constructor<? extends PacketHandler> constructor;
 		try {
 			constructor = clientManager.getConstructor(RUDPClient.class);
-			this.clientManager = constructor.newInstance(this);
+			this.packetHandler = constructor.newInstance(this);
 		} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			e.printStackTrace();
 		}
@@ -101,7 +97,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		initRelyThread();
 		reliableThread.start();
 		state = ConnectionState.STATE_CONNECTED;
-		clientManager.initializeClient();
+		packetHandler.initializeClient();
 	}
 
 	public void initReceiveThread() {
@@ -192,10 +188,20 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		}, "RUDPClient rely thread");
 	}
 
-	public void connect() throws SocketTimeoutException, SocketException, UnknownHostException, IOException{
+	public void connect() throws SocketTimeoutException, SocketException, UnknownHostException, IOException, InstantiationException, IllegalAccessException{
 		System.out.println("[RUDPClient] Connecting to UDP port "+port+"...");
 		if(state == ConnectionState.STATE_CONNECTED){System.out.println("[RUDPClient] Client already connected !");return;}
 		if(state == ConnectionState.STATE_CONNECTING){System.out.println("[RUDPClient] Client already connecting !");return;}
+		if(state == ConnectionState.STATE_DISCONNECTING){System.out.println("[RUDPClient] Client currently disconnecting !");return;}
+		
+		if(packetHandlerClass == null) throw new IOException("Unable to connect without packet handler");
+		packetHandler = packetHandlerClass.newInstance();
+		packetHandler.rudp = this;
+
+		socket = new DatagramSocket();
+		socket.setSoTimeout(RUDPConstants.CLIENT_TIMEOUT_TIME);
+
+		lastPacketReceiveTime = System.currentTimeMillis();
 
 		state = ConnectionState.STATE_CONNECTING;
 		try {
@@ -255,12 +261,12 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			state = ConnectionState.STATE_DISCONNECTED;
 			socket.close();
 		}
-		if(clientManager != null) clientManager.onDisconnectedByLocal(reason);
+		if(packetHandler != null) packetHandler.onDisconnectedByLocal(reason);
 	}
 
 	void disconnected(String reason) {
 		state = ConnectionState.STATE_DISCONNECTED;
-		if(clientManager != null) clientManager.onDisconnectedByRemote(reason);
+		if(packetHandler != null) packetHandler.onDisconnectedByRemote(reason);
 		if(type == ClientType.SERVER_CHILD) server.remove(this);
 	}
 
@@ -311,7 +317,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		sendPacket(RUDPConstants.PacketType.UNRELIABLE, data);
 	}
 	
-	private void sendPacket(byte packetType, byte[] data){
+	void sendPacket(byte packetType, byte[] data){
 		if(state == ConnectionState.STATE_DISCONNECTED) return;
 		byte[] packet = new byte[data.length+3];
 		short seq = getUnreliablePacketSequence();
@@ -423,9 +429,9 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		else if(data[0] == RUDPConstants.PacketType.RELIABLE) {
 
 			//handle reliable packet
-			if(clientManager != null) {
+			if(packetHandler != null) {
 				try {
-					clientManager.onReliablePacketReceived(data); //pass raw packet payload
+					packetHandler.onReliablePacketReceived(data); //pass raw packet payload
 				}catch(Exception e) {
 					System.err.print("[RUDPClient] An error occured while handling reliable packet:");
 					e.printStackTrace();
@@ -454,11 +460,11 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			int sentRemoteR = NetUtils.asInt(data, 7);
 			int receivedRemote = NetUtils.asInt(data, 11);
 			int receivedRemoteR = NetUtils.asInt(data, 15);
-			clientManager.onRemoteStatsReturned(sentRemote, sentRemoteR, receivedRemote, receivedRemoteR);
+			packetHandler.onRemoteStatsReturned(sentRemote, sentRemoteR, receivedRemote, receivedRemoteR);
 		}
-		else if(clientManager != null) {
+		else if(packetHandler != null) {
 			try {
-				clientManager.onPacketReceived(data); //pass raw packet payload
+				packetHandler.onPacketReceived(data); //pass raw packet payload
 			}catch(Exception e) {
 				System.err.print("[RUDPClient] An error occured while handling packet:");
 				e.printStackTrace();
@@ -484,9 +490,8 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 		return state == ConnectionState.STATE_CONNECTED;
 	}
 	
-	public void setPacketHandler(PacketHandler packetHandler){
-		packetHandler.rudp = this;
-		this.clientManager = packetHandler;
+	public void setPacketHandler(Class<? extends PacketHandler> packetHandler){
+		this.packetHandlerClass = packetHandler;
 	}
 
 	public int getLatency(){
