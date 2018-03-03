@@ -166,7 +166,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 							//BytesUtils.writeBytes(dp, 0, rpacket.dateNS);
 
 							if(rpacket.dateMS+RUDPConstants.PACKET_TIMEOUT_TIME_MILLISECONDS < currentMS){
-								System.out.println("[RUDPClient] Packet "+rpacket.seq+" dropped"/*toStringRepresentation(dp)*/);
+								System.out.println("[RUDPClient] Packet "+rpacket.seq+" dropped");
 								packetsSent.remove(i);
 								continue;
 							}
@@ -219,7 +219,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				state = ConnectionState.STATE_DISCONNECTED;
 				byte[] dataText = new byte[data.length-1];
 				System.arraycopy(data, 1, dataText, 0, dataText.length);
-				System.err.println("[RUDPClient] Unable to connect: "+new String(dataText, "UTF-8"));//TODO throw Exception
+				throw new IOException("Unable to connect: "+new String(dataText, "UTF-8"));
 
 			}
 			else{
@@ -254,14 +254,13 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			sendPacket(RUDPConstants.PacketType.DISCONNECT_FROMCLIENT, reponse);
 			state = ConnectionState.STATE_DISCONNECTED;
 			socket.close();
-			//if(clientManager != null) clientManager.onDisconnected(reason);
 		}
-		//clientManager.disconnect(reason);
+		if(clientManager != null) clientManager.onDisconnectedByLocal(reason);
 	}
 
 	void disconnected(String reason) {
 		state = ConnectionState.STATE_DISCONNECTED;
-		if(clientManager != null) clientManager.onDisconnected(reason);
+		if(clientManager != null) clientManager.onDisconnectedByRemote(reason);
 		if(type == ClientType.SERVER_CHILD) server.remove(this);
 	}
 

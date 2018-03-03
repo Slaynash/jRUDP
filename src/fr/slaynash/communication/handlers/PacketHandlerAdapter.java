@@ -12,7 +12,10 @@ public class PacketHandlerAdapter extends PacketHandler {
 	public void initializeClient() {}
 
 	@Override
-	public void onDisconnected(String reason) {}
+	public void onDisconnectedByLocal(String reason) {}
+
+	@Override
+	public void onDisconnectedByRemote(String reason) {}
 
 	@Override
 	public void onPacketReceived(byte[] data) {}
