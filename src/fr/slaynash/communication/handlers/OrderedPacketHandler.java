@@ -37,22 +37,54 @@ public class OrderedPacketHandler extends PacketHandler {
 
 	@Override
 	public void onReliablePacketReceived(byte[] data) {
-		Packet packet = new Packet(data) {}; //Parse packet
-		short inc = NetUtils.shortIncrement(lastHandledSeq); //last+1
+		Packet packet = new Packet(data) {}; //Parse received packet
+		short expectedSeq = NetUtils.shortIncrement(lastHandledSeq); //last + 1
 		
-		if(packet.getHeader().getSequenceNo() == inc) { //Expected packet received!
-			do {
-				handleReliablePacketOrdered(packet); //Handle it! Handle it!
-				lastHandledSeq = inc; //We handled it, lets keep that in mind
-			} while(!reliableQueue.isEmpty() && reliableQueue.peek().getHeader().getSequenceNo() == lastHandledSeq); 
-			// ^ If we have packets waiting to be handled and next one is right there, keep handling them!
+		if(NetUtils.sequence_greater_than(lastHandledSeq, packet.getHeader().getSequenceNo())) { // (last > received) == (received < last)
+			return; // Drop the packet, because we already handled it
 		}
-		else { //Uh oh some wrong ordered packet arrived :c
-			reliableQueue.enqueue(packet); //Queue it and lets wait for the expected one :c
+		
+		//Received an unexpected packet? Enqueue and pass
+		if(packet.getHeader().getSequenceNo() != expectedSeq) { 
+			reliableQueue.enqueue(packet);
+			return;
+		}
+		
+		// Handle expected packet
+		handleReliablePacketOrdered(packet); 
+		lastHandledSeq = packet.getHeader().getSequenceNo();
+		expectedSeq = NetUtils.shortIncrement(lastHandledSeq); 
+
+		// Handle every waiting packet
+		while(!reliableQueue.isEmpty() && reliableQueue.peek().getHeader().getSequenceNo() == expectedSeq) {
+			packet = reliableQueue.dequeue();
+			handleReliablePacketOrdered(packet);
+			lastHandledSeq = expectedSeq;
+			expectedSeq = NetUtils.shortIncrement(lastHandledSeq);			
 		}
 	}
 	
 	public void handleReliablePacketOrdered(Packet packet) {
-		System.out.println("Received: " + packet); //Print packet just to test
+		System.out.println("Handling: " + packet); //Print packet just to test
 	}
+	
+	/* Reliability ordering test
+	public static void main(String[] args) {
+		OrderedPacketHandler handler = new OrderedPacketHandler(null);
+		byte[][] list = new byte[][] {
+			{0x1, 0b0000_0000, 0b0000_0000}, //0 *
+			{0x1, 0b0000_0000, 0b0000_0001}, //1 *
+			{0x1, 0b0000_0000, 0b0000_0011}, //3
+			{0x1, 0b0000_0000, 0b0000_0101}, //5
+			{0x1, 0b0000_0000, 0b0000_0100}, //4 *
+			{0x1, 0b0000_0000, 0b0000_0111}, //7
+			{0x1, 0b0000_0000, 0b0000_0010}, //2 *
+			{0x1, 0b0000_0000, 0b0000_0110}, //6
+			{0x1, 0b0000_0000, 0b0000_1000}, //8 *
+		};
+		
+		for(byte[] p_data : list) {
+			handler.onReliablePacketReceived(p_data);
+		}
+	}*/
 }
