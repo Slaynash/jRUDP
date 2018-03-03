@@ -26,9 +26,9 @@ import fr.slaynash.communication.utils.NetUtils;
 public class RUDPClient { //TODO remove use of ByteBuffers and use functions instead
 
 	private class ReliablePacket{
-		protected long dateMS;
-		protected long minDateMS;
-		protected byte[] data;
+		private long dateMS;
+		private long minDateMS;
+		private byte[] data;
 		private short seq;
 
 		public ReliablePacket(short seq, long dateMS, byte[] data){
@@ -166,7 +166,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 							//BytesUtils.writeBytes(dp, 0, rpacket.dateNS);
 
 							if(rpacket.dateMS+RUDPConstants.PACKET_TIMEOUT_TIME_MILLISECONDS < currentMS){
-								System.out.println("[RUDPClient] Packet dropped "+rpacket.dateMS/*toStringRepresentation(dp)*/);
+								System.out.println("[RUDPClient] Packet "+rpacket.seq+" dropped"/*toStringRepresentation(dp)*/);
 								packetsSent.remove(i);
 								continue;
 							}
@@ -177,6 +177,12 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 							}
 							i++;
 						}
+					}
+
+					if(state == ConnectionState.STATE_DISCONNECTING && packetsSent.size() == 0) {
+						state = ConnectionState.STATE_DISCONNECTED;
+						server.remove(this);
+						return;
 					}
 					Thread.sleep(20);
 				}
@@ -237,7 +243,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 
 	public void disconnect(String reason) {
-		if(state == ConnectionState.STATE_DISCONNECTED) return;
+		if(state == ConnectionState.STATE_DISCONNECTED || state == ConnectionState.STATE_DISCONNECTING) return;
 		byte[] reponse = reason.getBytes(StandardCharsets.UTF_8);
 		
 		if(type == ClientType.SERVER_CHILD){
@@ -256,6 +262,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	void disconnected(String reason) {
 		state = ConnectionState.STATE_DISCONNECTED;
 		if(clientManager != null) clientManager.onDisconnected(reason);
+		if(type == ClientType.SERVER_CHILD) server.remove(this);
 	}
 
 	/*
@@ -273,6 +280,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 
 	public void sendReliablePacket(byte packetType, byte[] data){
+		if(state == ConnectionState.STATE_DISCONNECTED) return;
 		byte[] packet = new byte[data.length+3];
 		long timeMS = System.currentTimeMillis();
 		short seq = getReliablePacketSequence();
@@ -305,6 +313,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 	
 	private void sendPacket(byte packetType, byte[] data){
+		if(state == ConnectionState.STATE_DISCONNECTED) return;
 		byte[] packet = new byte[data.length+3];
 		short seq = getUnreliablePacketSequence();
 		
@@ -334,6 +343,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	 * @param data Header and payload of received packet
 	 */
 	void handlePacket(byte[] data) {
+		if((state == ConnectionState.STATE_DISCONNECTING || state == ConnectionState.STATE_DISCONNECTED) && data[0] != RUDPConstants.PacketType.RELY) return;
 		//System.out.println("Received Packet: " + NetUtils.asHexString(data)); //Debug received packet
 
 		lastPacketReceiveTime = System.currentTimeMillis(); //Assume packet received when handling started
@@ -379,6 +389,10 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 						return;
 					}
 				}
+				if(state == ConnectionState.STATE_DISCONNECTING && packetsSent.size() == 0) {
+					state = ConnectionState.STATE_DISCONNECTED;
+					server.remove(this);
+				}
 			}
 			return;
 		}
@@ -401,15 +415,15 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 			//System.out.println("latency: "+latency+"ms");
 			return;
 		}
+		else if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMSERVER){
+			byte[] packetData = new byte[data.length-3];
+			System.arraycopy(data, 3, packetData, 0, data.length-3);
+			disconnected(new String(packetData, StandardCharsets.UTF_8));
+			return;
+		}
 		else if(data[0] == RUDPConstants.PacketType.RELIABLE) {
 
 			//handle reliable packet
-			if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMSERVER){
-				byte[] packetData = new byte[data.length-3];
-				System.arraycopy(data, 3, packetData, 0, data.length-3);
-				disconnected(new String(packetData, StandardCharsets.UTF_8));
-				return;
-			}
 			if(clientManager != null) {
 				try {
 					clientManager.onReliablePacketReceived(data); //pass raw packet payload
@@ -481,6 +495,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 
 	private void sendPacketRaw(byte[] data){
+		if(state == ConnectionState.STATE_DISCONNECTED) return;
 		if(type == ClientType.SERVER_CHILD) server.sendPacket(data, address, port);
 		else{
 			DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
