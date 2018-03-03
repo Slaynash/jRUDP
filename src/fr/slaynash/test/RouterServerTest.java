@@ -46,7 +46,7 @@ public final class RouterServerTest extends JFrame {
 		}
 		
 		@Override
-		public void onDisconnected(String reason) {
+		public void onDisconnectedByRemote(String reason) {
 			String info = rudp.getAddress() + ":" + rudp.getPort();
 			System.out.println("[DEBUG]" + info + " has disconnected");
 			gui_instance.modelConnClients.removeElement(info);

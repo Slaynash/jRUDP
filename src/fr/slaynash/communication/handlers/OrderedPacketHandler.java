@@ -18,7 +18,13 @@ public class OrderedPacketHandler extends PacketHandler {
 	public void initializeClient() {}
 
 	@Override
-	public void onDisconnected(String reason) {
+	public void onDisconnectedByRemote(String reason) {
+		reliableQueue = new PacketQueue();
+		lastHandledSeq = Short.MAX_VALUE;
+	}
+	
+	@Override
+	public void onDisconnectedByLocal(String reason) {
 		reliableQueue = new PacketQueue();
 		lastHandledSeq = Short.MAX_VALUE;
 	}

@@ -30,6 +30,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	private Thread clientDropHandlerThread;
 	
 	private boolean running = false;
+	private boolean stopping = false;
 	private List<RUDPClient> clients = new ArrayList<RUDPClient>();
 	
 	private Class<? extends PacketHandler> clientManager;
@@ -64,7 +65,14 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 		if(data[0] == RUDPConstants.PacketType.HANDSHAKE_START){
 			//If client is valid, add it to the list and initialize it
 			
-			if(NetUtils.asInt(data, 1) == RUDPConstants.VERSION_MAJOR && NetUtils.asInt(data, 5) == RUDPConstants.VERSION_MINOR){//version check
+			if(stopping) {
+				byte[] error = "Server closing".getBytes(StandardCharsets.UTF_8);
+				byte[] reponse = new byte[error.length+1];
+				reponse[0] = RUDPConstants.PacketType.HANDSHAKE_ERROR;
+				System.arraycopy(error, 0, reponse, 1, error.length);
+				sendPacket(reponse, clientAddress, clientPort);
+			}
+			else if(NetUtils.asInt(data, 1) == RUDPConstants.VERSION_MAJOR && NetUtils.asInt(data, 5) == RUDPConstants.VERSION_MINOR){//version check
 				
 				sendPacket(new byte[]{RUDPConstants.PacketType.HANDSHAKE_OK}, clientAddress, clientPort);
 				
@@ -96,8 +104,8 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 			if(Arrays.equals(client.address.getAddress(), clientAddress.getAddress()) && client.port == clientPort){
 				
 				if(data[0] == RUDPConstants.PacketType.DISCONNECT_FROMCLIENT){
-					byte[] reason = new byte[data.length-2];
-					System.arraycopy(data, 2, reason, 0, reason.length);
+					byte[] reason = new byte[data.length-3];
+					System.arraycopy(data, 3, reason, 0, reason.length);
 					
 					client.disconnected(new String(reason, StandardCharsets.UTF_8));
 					clientToRemove = client;
@@ -134,11 +142,22 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	public void stop(){
 		System.out.println("Stopping server...");
 		synchronized(clients){
-			running = false;
+			stopping = true;
 			for(RUDPClient client : clients) {
 				client.disconnect("Server shutting down");
 			}
 		}
+		int remainingClients = 0;
+		System.out.println("Waiting for every clients to disconnect...");
+		while(clients.size() != 0) {
+			if(clients.size() != remainingClients) {
+				remainingClients = clients.size();
+				System.out.println(remainingClients+" client remaining...");
+			}
+			try {Thread.sleep(100);} catch (InterruptedException e) {e.printStackTrace();}
+		}
+		System.out.println("Closing server...");
+		running = false;
 		datagramSocket.close();
 	}
 	
@@ -204,7 +223,6 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 								RUDPClient client = clients.get(i);
 								if(client.lastPacketReceiveTime < maxMS){
 									client.disconnected("Connection timed out");
-									clients.remove(i);
 								}
 								else i++;
 							}

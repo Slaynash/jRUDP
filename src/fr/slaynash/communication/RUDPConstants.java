@@ -32,8 +32,8 @@ public final class RUDPConstants {
 		public static final byte HANDSHAKE_ERROR		= createPacketType((byte)4 , false);
 		public static final byte PING_REQUEST			= createPacketType((byte)5 , false);
 		public static final byte PING_RESPONSE			= createPacketType((byte)6 , false);
-		public static final byte DISCONNECT_FROMCLIENT	= createPacketType((byte)7 , true );
-		public static final byte DISCONNECT_FROMSERVER	= createPacketType((byte)8 , false);
+		public static final byte DISCONNECT_FROMCLIENT	= createPacketType((byte)7 , false);
+		public static final byte DISCONNECT_FROMSERVER	= createPacketType((byte)8 , true );
 		public static final byte RELY					= createPacketType((byte)9 , false);
 		public static final byte PACKETSSTATS_REQUEST	= createPacketType((byte)10, false);
 		public static final byte PACKETSSTATS_RESPONSE	= createPacketType((byte)11, false);

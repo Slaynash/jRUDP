@@ -36,7 +36,7 @@ public class LocalServClientTest {
 		}
 		
 		@Override
-		public void onDisconnected(String reason) {
+		public void onDisconnectedByRemote(String reason) {
 			System.out.println("DC reason: " + reason);
 		}
 	}

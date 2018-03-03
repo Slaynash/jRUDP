@@ -14,7 +14,9 @@ public abstract class PacketHandler {
 	/* Methods */
 	public abstract void initializeClient();
 	
-	public abstract void onDisconnected(String reason);
+	public abstract void onDisconnectedByLocal(String reason);
+	
+	public abstract void onDisconnectedByRemote(String reason);
 	
 	public void disconnect(String reason){
 		rudp.disconnect(reason);

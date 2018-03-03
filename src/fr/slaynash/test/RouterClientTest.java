@@ -75,15 +75,16 @@ public class RouterClientTest extends JFrame {
 		}
 		
 		@Override
-		public void onDisconnected(String reason) {
-			super.onDisconnected(reason);
+		public void onDisconnectedByRemote(String reason) {
+			super.onDisconnectedByRemote(reason);
 			System.out.println("[INFO]Disconnected: " + reason);
 			prevHandled = Short.MAX_VALUE;
 			gui_instance.disconnectWGui();
 		}
 		
-		public void onDisconnectManual() {
-			super.onDisconnected("Manual");
+		@Override
+		public void onDisconnectedByLocal(String reason) {
+			super.onDisconnectedByLocal(reason);
 			System.out.println("[INFO]Disconnected.");
 			prevHandled = Short.MAX_VALUE;
 		}
@@ -227,7 +228,6 @@ public class RouterClientTest extends JFrame {
 
 	private void disconnectWGui() {
 		clientInstance.disconnect("DC");
-		ClientPacketHandler.instance.onDisconnectManual();
 		btnConnection.setText("Connect");	
 	}
 
