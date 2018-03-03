@@ -8,7 +8,7 @@ import fr.slaynash.communication.utils.PacketQueue;
 public class OrderedPacketHandler extends PacketHandler {
 	
 	protected PacketQueue reliableQueue = new PacketQueue();
-	protected short lastHandledSeq = Short.MAX_VALUE;
+	protected short lastHandledSeq = -1;
 
 	public OrderedPacketHandler(RUDPClient rudpClient) {
 		super(rudpClient);

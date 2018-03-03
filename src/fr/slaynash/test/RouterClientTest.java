@@ -44,7 +44,7 @@ public class RouterClientTest extends JFrame {
 			super(null);
 		}
 
-		short prevHandled = Short.MAX_VALUE;
+		short prevHandled = -1;
 
 		public ClientPacketHandler(RUDPClient rudpClient) {
 			super(rudpClient);

@@ -59,10 +59,10 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	private int latency = 400;
 	private RUDPClient instance = this;
 	
-	short sequanceReliable = Short.MIN_VALUE;
-	short sequanceUnreliable = Short.MIN_VALUE;
+	short sequenceReliable = 0;
+	short sequenceUnreliable = 0;
 	
-	short lastPingSeq = Short.MIN_VALUE;
+	short lastPingSeq = 0;
 
 	int sent, sentReliable;
 	int received, receivedReliable;
@@ -441,7 +441,7 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 				}*/
 			}
 		}
-		else if(data[0] == RUDPConstants.PacketType.PACKETSSTATS_REQUEST){
+		else if(data[0] == RUDPConstants.PacketType.PACKETSSTATS_REQUEST) {
 			byte[] packet = new byte[17];
 			NetUtils.writeBytes(packet, 0, sent+1); // Add one to count the current packet
 			NetUtils.writeBytes(packet, 4, sentReliable);
@@ -521,19 +521,15 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 	
 	private short getReliablePacketSequence() {
-		if(sequanceReliable == Short.MAX_VALUE) {
-			sequanceReliable = Short.MIN_VALUE;
-			return Short.MAX_VALUE;
-		}
-		else return sequanceReliable++;
+		short prev = sequenceReliable;
+		sequenceReliable = NetUtils.shortIncrement(sequenceReliable);
+		return prev;
 	}
 	
 	private short getUnreliablePacketSequence() {
-		if(sequanceUnreliable == Short.MAX_VALUE) {
-			sequanceUnreliable = Short.MIN_VALUE;
-			return Short.MAX_VALUE;
-		}
-		else return sequanceUnreliable++;
+		short prev = sequenceUnreliable;
+		sequenceUnreliable = NetUtils.shortIncrement(sequenceUnreliable);
+		return prev;
 	}
 
 	/*
