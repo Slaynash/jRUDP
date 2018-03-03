@@ -1,7 +1,6 @@
 package fr.slaynash.communication.handlers;
 
 import fr.slaynash.communication.rudp.Packet;
-import fr.slaynash.communication.rudp.RUDPClient;
 import fr.slaynash.communication.utils.NetUtils;
 import fr.slaynash.communication.utils.PacketQueue;
 
@@ -10,12 +9,8 @@ public class OrderedPacketHandler extends PacketHandler {
 	protected PacketQueue reliableQueue = new PacketQueue();
 	protected short lastHandledSeq = -1;
 
-	public OrderedPacketHandler(RUDPClient rudpClient) {
-		super(rudpClient);
-	}
-
 	@Override
-	public void initializeClient() {}
+	public void onConnection() {}
 
 	@Override
 	public void onDisconnectedByRemote(String reason) {
@@ -51,26 +46,27 @@ public class OrderedPacketHandler extends PacketHandler {
 		}
 		
 		// Handle expected packet
-		handleReliablePacketOrdered(packet); 
+		onExpectedPacketReceived(packet); 
 		lastHandledSeq = packet.getHeader().getSequenceNo();
 		expectedSeq = NetUtils.shortIncrement(lastHandledSeq); 
 
 		// Handle every waiting packet
 		while(!reliableQueue.isEmpty() && reliableQueue.peek().getHeader().getSequenceNo() == expectedSeq) {
 			packet = reliableQueue.dequeue();
-			handleReliablePacketOrdered(packet);
+			onExpectedPacketReceived(packet);
 			lastHandledSeq = expectedSeq;
 			expectedSeq = NetUtils.shortIncrement(lastHandledSeq);			
 		}
 	}
 	
-	public void handleReliablePacketOrdered(Packet packet) {
+	public void onExpectedPacketReceived(Packet packet) {
 		System.out.println("Handling: " + packet); //Print packet just to test
 	}
 	
-	/* Reliability ordering test
+	/*
+	//Reliability ordering test
 	public static void main(String[] args) {
-		OrderedPacketHandler handler = new OrderedPacketHandler(null);
+		OrderedPacketHandler handler = new OrderedPacketHandler();
 		byte[][] list = new byte[][] {
 			{0x1, 0b0000_0000, 0b0000_0000}, //0 *
 			{0x1, 0b0000_0000, 0b0000_0001}, //1 *

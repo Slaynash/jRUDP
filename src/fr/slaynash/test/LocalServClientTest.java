@@ -1,13 +1,8 @@
 package fr.slaynash.test;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
-
 import fr.slaynash.communication.handlers.OrderedPacketHandler;
 import fr.slaynash.communication.handlers.PacketHandlerAdapter;
+import fr.slaynash.communication.rudp.Packet;
 import fr.slaynash.communication.rudp.RUDPClient;
 import fr.slaynash.communication.rudp.RUDPServer;
 import fr.slaynash.communication.utils.NetUtils;
@@ -18,20 +13,18 @@ public class LocalServClientTest {
 	
 	public static class ServerPHandler extends PacketHandlerAdapter {
 
-		public ServerPHandler(RUDPClient rudpClient) {
-			super(rudpClient);
-		}
 	}
 	
 	public static class ClientPHandler extends OrderedPacketHandler {
 
-		public ClientPHandler() {
-			super(null);
-		}
-	
 		@Override
 		public void onPacketReceived(byte[] data) {
-			System.out.println("Non-reliable: " + NetUtils.asHexString(data));					
+			System.out.println(NetUtils.asHexString(data));
+		}
+		
+		@Override
+		public void onExpectedPacketReceived(Packet packet) {
+			System.out.println(packet);
 		}
 		
 		@Override
@@ -41,54 +34,27 @@ public class LocalServClientTest {
 		}
 	}
 	
-	public static void test() {
-		initServer();
+	public static void main(String[] args) throws Exception {
+		server = new RUDPServer(1111);
+		server.setPacketHandler(ServerPHandler.class);
+		server.start();
 		
-		try { Thread.sleep(2000); } catch(InterruptedException e) {}
+		client = new RUDPClient(NetUtils.getInternetAdress("localhost"), 1111);
+		client.setPacketHandler(ClientPHandler.class);
+		client.connect();
 		
-		initClient();
+		server.getConnectedClients().get(0).sendPacket(new byte[]{0});
 		
-		server.getConnectedUsers().get(0).sendPacket(new byte[]{1});
-		for(int i=0; i<100; i++) {
-			server.getConnectedUsers().get(0).sendReliablePacket(new byte[]{1});
-		}
+		client.disconnect();
+		client.connect();
 		
+		server.getConnectedClients().get(0).sendPacket(new byte[]{0});
+		server.getConnectedClients().get(0).sendReliablePacket(new byte[]{0});
+		
+		client.disconnect();
+		client.connect();
+		
+		client.disconnect();
 		server.stop();
-	}
-
-	private static void initServer() {
-		try {
-			server = new RUDPServer(1111);
-			server.setClientPacketHandler(ServerPHandler.class);
-			server.start();
-		}
-		catch(SocketException e) {
-			System.out.println("Port 1111 is occupied. Server couldn't be initialized.");
-			System.exit(-1);
-		}
-	}
-	
-	private static void initClient() {
-		try {
-			client = new RUDPClient(InetAddress.getByName("localhost"), 1111);
-			client.setPacketHandler(ClientPHandler.class);
-			client.connect();
-		}
-		catch(SocketException e) {
-			System.out.println("Cannot allow port for the client. Client can't be launched.");
-			System.exit(-1);
-		}
-		catch(UnknownHostException e) {
-			System.out.println("Couldn't connect to localhost.");
-			System.exit(-1);
-		}
-		catch(SocketTimeoutException e) {}
-		catch(InstantiationException e) {}
-		catch(IllegalAccessException e) {}
-		catch(IOException e) {}
-	}
-
-	public static void main(String[] args) {
-		test();
 	}
 }

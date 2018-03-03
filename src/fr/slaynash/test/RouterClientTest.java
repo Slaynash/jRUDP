@@ -37,18 +37,8 @@ public class RouterClientTest extends JFrame {
 	private static RouterClientTest gui_instance;
 
 	public static class ClientPacketHandler extends OrderedPacketHandler {
-
-		public static ClientPacketHandler instance = new ClientPacketHandler();
-
-		private ClientPacketHandler() {
-			super(null);
-		}
-
+		
 		short prevHandled = -1;
-
-		public ClientPacketHandler(RUDPClient rudpClient) {
-			super(rudpClient);
-		}
 
 		@Override
 		public void onReliablePacketReceived(byte[] data) {
@@ -64,7 +54,7 @@ public class RouterClientTest extends JFrame {
 		}
 
 		@Override
-		public void handleReliablePacketOrdered(Packet packet) {
+		public void onExpectedPacketReceived(Packet packet) {
 			short next = NetUtils.shortIncrement(prevHandled);
 			gui_instance.taHandledPacket.setText("Last Handled Packet:"+ lastHandledSeq +"\n" + packet.toString());
 			if(packet.getHeader().getSequenceNo() != next) {

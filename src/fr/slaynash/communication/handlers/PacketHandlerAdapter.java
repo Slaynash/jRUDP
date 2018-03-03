@@ -1,15 +1,9 @@
 package fr.slaynash.communication.handlers;
 
-import fr.slaynash.communication.rudp.RUDPClient;
-
 public class PacketHandlerAdapter extends PacketHandler {
 
-	public PacketHandlerAdapter(RUDPClient rudpClient) {
-		super(rudpClient);
-	}
-
 	@Override
-	public void initializeClient() {}
+	public void onConnection() {}
 
 	@Override
 	public void onDisconnectedByLocal(String reason) {}

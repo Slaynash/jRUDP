@@ -34,12 +34,8 @@ public final class RouterServerTest extends JFrame {
 	
 	public static class SPacketHandler extends OrderedPacketHandler {
 
-		public SPacketHandler(RUDPClient rudpClient) {
-			super(rudpClient);
-		}
-		
 		@Override
-		public void initializeClient() {
+		public void onConnection() {
 			String info = rudp.getAddress() + ":" + rudp.getPort();
 			System.out.println("[DEBUG]" + info + " has connected!");
 			gui_instance.modelConnClients.addElement(info);
@@ -115,7 +111,7 @@ public final class RouterServerTest extends JFrame {
 			else { //Server not running handle
 				try {
 					serverInstance = new RUDPServer(Integer.parseInt(tfSrvPort.getText()));
-					serverInstance.setClientPacketHandler(SPacketHandler.class); //No handler yet
+					serverInstance.setPacketHandler(SPacketHandler.class); //No handler yet
 					serverInstance.start();
 					btnStartSrv.setText("Stop Server!");
 				}
@@ -132,7 +128,7 @@ public final class RouterServerTest extends JFrame {
 				packetTimer.schedule(new TimerTask() { //Send every user a packet per X milliseconds
 					@Override
 					public void run() {
-						for(RUDPClient c : serverInstance.getConnectedUsers()) {
+						for(RUDPClient c : serverInstance.getConnectedClients()) {
 							c.sendReliablePacket(new byte[]{0x01});
 						}
 					}

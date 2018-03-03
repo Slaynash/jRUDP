@@ -20,7 +20,7 @@ public final class RUDPConstants {
 	public static final long PACKET_STORE_TIME_MILLISECONDS = 2000L;
 	
 	public static final int VERSION_MAJOR = 1;
-	public static final int VERSION_MINOR = 4;
+	public static final int VERSION_MINOR = 0;
 	
 	public static final long PING_INTERVAL = 1000;
 	

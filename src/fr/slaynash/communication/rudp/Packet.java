@@ -7,7 +7,7 @@ import fr.slaynash.communication.utils.NetUtils;
  * Simple packet definition to be extended by other packet types
  * @author iGoodie
  */
-public abstract class Packet { //TODO impl the base
+public abstract class Packet {
 
 	public static final int HEADER_SIZE = 3; //bytes
 	

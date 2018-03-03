@@ -15,53 +15,67 @@ Examples:
 ```java
 public class Server
 {
-    public static RUDPServer serverInstance;
-    public static final int SERVER_PORT = 56448;
-    public static void main(String[] args)
-    {
-        try {
-		serverInstance = new RUDPServer(SERVER_PORT);
-		serverInstance.setClientPacketHandler(OrderedPacketHandler.class);
-		serverInstance.start();
-	}
-	catch(SocketException e) {
-		System.out.println("Port " + SERVER_PORT + " is occupied. Server couldn't be initialized.");
-		System.exit(-1);
-	}
+	public static RUDPServer serverInstance;
+	public static final int SERVER_PORT = 56448;
+	public static void main(String[] args)
+	{
+		try {
+			serverInstance = new RUDPServer(SERVER_PORT);
+			serverInstance.setPacketHandler(OrderedPacketHandler.class);
+			serverInstance.start();
+		}
+		catch(SocketException e) {
+			System.out.println("Port " + SERVER_PORT + " is occupied. Server couldn't be initialized.");
+			System.exit(-1);
+		}
 
-	for(RUDPClient c : serverInstance.getConnectedUsers()) {
-		c.sendPacket(new byte[]{0x00}); //send data to every client
+		//send data to every client
+		for(RUDPClient c : serverInstance.getConnectedClients()) {
+			c.sendPacket(new byte[]{0x00});
+			c.sendReliablePacket(new byte[]{0x00});
+		}
+		
+		serverInstance.kick("localhost", 1234); //kick localhost:1234
+		serverInstance.stop();
 	}
-
-	serverInstance.stop();
 }
 ```
 
 ```java
 public class Client
 {
-    public static final InetAddress SERVER_HOST = NetUtils.getInternetAdress("localhost");
-    public static final int SERVER_PORT = 56448;
-    public static void main(String[] args)
-    {
-        try {
-		client = new RUDPClient(SERVER_HOST, SERVER_PORT);
-		client.setPacketHandler(OrderedPacketHandler.instance); //Assuming you have a new OrderedPacketHandler instance stored
-		client.connect();
-	}
-	catch(SocketException e) {
-		System.out.println("Cannot allow port for the client. Client can't be launched.");
-		System.exit(-1);
-	}
-	catch(UnknownHostException e) {
-		System.out.println("Couldn't connect to " + SERVER_HOST + ":" + SERVER_PORT + ".");
-		System.exit(-1);
-	}
-	catch(SocketTimeoutException e) {}
-	catch(IOException e) {}
+	public static final InetAddress SERVER_HOST = NetUtils.getInternetAdress("localhost");
+	public static final int SERVER_PORT = 56448;
+	
+	public static RUDPClient client;
+	
+	public static void main(String[] args)
+	{
+		try {
+			client = new RUDPClient(SERVER_HOST, SERVER_PORT);
+			client.setPacketHandler(OrderedPacketHandler.class);
+			client.connect();
+		}
+		catch(SocketException e) {
+			System.out.println("Cannot allow port for the client. Client can't be launched.");
+			System.exit(-1);
+		}
+		catch(UnknownHostException e) {
+			System.out.println("Unknown host: " + SERVER_HOST);
+			System.exit(-1);
+		}
+		catch(SocketTimeoutException e) {
+			System.out.println("Connection to " + SERVER_HOST + ":" + SERVER_PORT + " timed out.");
+		}
+		catch (InstantiationException e) {} //Given handler class can't be instantiated. 
+		catch (IllegalAccessException e) {} //Given handler class can't be accessed.
+		catch(IOException e) {} 
 
-	client.sendPacket(new byte[]{0x00}); //Send packet to the server
-    }
+		client.sendPacket(new byte[]{0x00}); //Send packet to the server
+		client.sendReliablePacket(new byte[]{0x00}); //Send packet to the server
+		
+		client.disconnect(); //Disconnect from server
+	}
 }
 ```
 
