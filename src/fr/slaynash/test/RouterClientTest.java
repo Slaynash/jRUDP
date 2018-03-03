@@ -202,7 +202,7 @@ public class RouterClientTest extends JFrame {
 				int port = Integer.parseInt(tfServerPort.getText());
 
 				clientInstance = new RUDPClient(host, port);
-				clientInstance.setPacketHandler(ClientPacketHandler.instance);
+				clientInstance.setPacketHandler(ClientPacketHandler.class);
 				clientInstance.connect();
 
 			}
@@ -217,6 +217,10 @@ public class RouterClientTest extends JFrame {
 			}
 			catch(IOException e) {
 				System.out.println("[ERROR]Connection timed out");
+			} catch (InstantiationException e) {
+				System.out.println("[ERROR]Cannot create an instance of the handler");
+			} catch (IllegalAccessException e) {
+				System.out.println("[ERROR]Cannot access the constructor of the handler");
 			}
 			finally {
 				btnConnection.setText(clientInstance!=null && clientInstance.isConnected() ? "Disconnect" : "Connect");

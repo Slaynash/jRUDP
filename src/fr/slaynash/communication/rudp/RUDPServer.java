@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import fr.slaynash.communication.RUDPConstants;
+import fr.slaynash.communication.enums.ConnectionState;
 import fr.slaynash.communication.handlers.PacketHandler;
 import fr.slaynash.communication.utils.NetUtils;
 
@@ -164,6 +165,28 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 	void remove(RUDPClient client) {
 		synchronized(clients){
 			clients.remove(client);
+		}
+	}
+	
+	public void kick(String address, int port) {
+		kick(address, port, "Kicked from server");
+	}
+	
+	public void kick(String address, int port, String reason) {
+		synchronized(clients){
+			RUDPClient clientToRemove = null;
+			for(RUDPClient client : clients) {
+				if(client.address.getHostAddress().equals(address) && client.port == port) {
+					clientToRemove = client;
+					break;
+				}
+			}
+			
+			byte[] reasonB = reason.getBytes(StandardCharsets.UTF_8);
+			clientToRemove.sendPacket(RUDPConstants.PacketType.DISCONNECT_FROMSERVER, reasonB);
+			clientToRemove.state = ConnectionState.STATE_DISCONNECTED;
+			
+			clients.remove(clientToRemove);
 		}
 	}
 	
