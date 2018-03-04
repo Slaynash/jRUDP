@@ -79,7 +79,7 @@ public class RUDPServer {// receive buffer is bigger (4096B) and client packet i
 			throw new IllegalArgumentException("Given handler class cannot be an abstract class!");
 		}
 		
-		this.clientManager =  clientManager;
+		this.clientManager = clientManager;
 	}
 	
 	/* Actions */

@@ -1,4 +1,4 @@
-# Reliable-UDP-library
+# jRUDP
 A Reliable Java UDP Library for multiplayer games and more
 
 Specials thanks
@@ -34,7 +34,7 @@ public class Server
 			c.sendPacket(new byte[]{0x00});
 			c.sendReliablePacket(new byte[]{0x00});
 		}
-		
+
 		serverInstance.kick("localhost", 1234); //kick localhost:1234
 		serverInstance.stop();
 	}
@@ -46,9 +46,9 @@ public class Client
 {
 	public static final InetAddress SERVER_HOST = NetUtils.getInternetAdress("localhost");
 	public static final int SERVER_PORT = 56448;
-	
+
 	public static RUDPClient client;
-	
+
 	public static void main(String[] args)
 	{
 		try {
@@ -67,13 +67,13 @@ public class Client
 		catch(SocketTimeoutException e) {
 			System.out.println("Connection to " + SERVER_HOST + ":" + SERVER_PORT + " timed out.");
 		}
-		catch (InstantiationException e) {} //Given handler class can't be instantiated. 
+		catch (InstantiationException e) {} //Given handler class can't be instantiated.
 		catch (IllegalAccessException e) {} //Given handler class can't be accessed.
-		catch(IOException e) {} 
+		catch(IOException e) {}
 
 		client.sendPacket(new byte[]{0x00}); //Send packet to the server
 		client.sendReliablePacket(new byte[]{0x00}); //Send packet to the server
-		
+
 		client.disconnect(); //Disconnect from server
 	}
 }

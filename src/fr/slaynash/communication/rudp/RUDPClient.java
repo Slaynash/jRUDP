@@ -3,6 +3,7 @@ package fr.slaynash.communication.rudp;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -109,6 +110,9 @@ public class RUDPClient { //TODO remove use of ByteBuffers and use functions ins
 	}
 	
 	public void setPacketHandler(Class<? extends PacketHandler> packetHandler){
+		if(Modifier.isAbstract(packetHandler.getModifiers())) { //Class should not be abstract!
+			throw new IllegalArgumentException("Given handler class cannot be an abstract class!");
+		}
 		this.packetHandlerClass = packetHandler;
 	}
 
